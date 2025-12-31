@@ -91,18 +91,38 @@ If a rule is wrong, fix the rule globally. Do not suppress locally.
 
 ```bash
 # Quality gate (run before every push)
-npm run quality        # tests + typecheck + lint + format + build
+npm run quality        # typecheck + lint + format + build + test + test:integration
 
 # Individual checks
-npm run test           # Run all tests
+npm run test           # Run unit tests (Vitest)
+npm run test:integration  # Run MCP integration tests (Inspector CLI)
 npm run typecheck      # TypeScript type checking
-npm run lint           # ESLint
-npm run format:check   # Prettier check
+npm run lint           # Biome linting
+npm run format:check   # Biome format check
 npm run build          # Build the library
 
 # Clean slate
 npm run clean          # Remove build artifacts
 ```
+
+## Integration Testing
+
+Integration tests verify the MCP server works end-to-end using the MCP Inspector CLI. They are **mandatory** and run as part of `npm run quality`.
+
+```bash
+# Run integration tests manually
+npm run test:integration
+
+# Or use MCP Inspector CLI directly
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/list
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name healthcheck
+```
+
+Integration tests verify:
+- Server starts and responds to MCP protocol
+- Tools are discoverable via `tools/list`
+- Tool invocations return expected responses
+- Echo functionality works correctly
 
 ## Type Policy
 
@@ -153,7 +173,7 @@ tests/
 
 ## Constitution Reference
 
-Full governance rules: `.specify/memory/constitution.md` (v1.1.0)
+Full governance rules: `.specify/memory/constitution.md` (v1.2.0)
 
 NON-NEGOTIABLE principles:
 - I. Epistemic Humility

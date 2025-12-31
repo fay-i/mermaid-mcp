@@ -1,20 +1,20 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0 (minor: added Epistemic Humility, enhanced CI-First)
+Version change: 1.1.0 → 1.2.0 (minor: added mandatory integration testing)
 Modified principles:
-  - II. CI-First Local Verification → III. (renumbered, enhanced with Clean Slate Protocol)
-  - All principles III-X renumbered to IV-XI
+  - X. Local Gates: Added integration tests as mandatory quality gate
 Added sections:
-  - I. Epistemic Humility (NON-NEGOTIABLE)
-  - Clean Slate Protocol in CI-First Local Verification
+  - Integration test requirement in Local Gates
+  - MCP Inspector CLI verification as quality gate
 Removed sections: None
 Templates requiring updates:
-  - .specify/templates/plan-template.md: ✅ Compatible
-  - .specify/templates/spec-template.md: ✅ Compatible
-  - .specify/templates/tasks-template.md: ✅ Compatible
-  - CLAUDE.md: ✅ Created (new file)
+  - CLAUDE.md: Updated with integration test commands
 Follow-up TODOs: None
+
+Previous change (1.0.0 → 1.1.0):
+  - Added I. Epistemic Humility (NON-NEGOTIABLE)
+  - Enhanced CI-First with Clean Slate Protocol
 -->
 
 # Mermaid Printer Constitution
@@ -163,11 +163,14 @@ GitHub Actions runs on all pull requests and on pushes to `main` only.
 A single command MUST exist that runs all quality checks.
 
 **The command MUST run**:
-- All tests
 - Type checking
 - Linting
 - Format checking
 - Build (if applicable)
+- Unit tests (behavior tests)
+- Integration tests (MCP Inspector CLI verification)
+
+**Integration tests are mandatory.** Unit tests verify code in isolation; integration tests verify the MCP server actually works end-to-end. Both MUST pass.
 
 - Developers MUST run this command before every commit/push
 - CI MUST run this exact command
@@ -189,10 +192,11 @@ Tasks are derived from plans; they are never invented in isolation.
 ### Local Gates (before every commit/push)
 
 - [ ] Clean Slate Protocol executed (clean, fresh install, quality command)
-- [ ] Quality command passes (tests, types, lint, format, build)
+- [ ] Quality command passes (types, lint, format, build, unit tests, integration tests)
 - [ ] No skipped tests, no lint disables, no type ignores
 - [ ] All new code has corresponding behavior tests
 - [ ] Tests fail before implementation, pass after
+- [ ] Integration tests verify MCP server works end-to-end
 
 ### CI Gates (automated on every PR)
 
@@ -225,4 +229,4 @@ NON-NEGOTIABLE principles (I, II, III, IV, VII, VIII, X) MUST NOT be weakened wi
 
 ---
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-30 | **Last Amended**: 2025-12-30
+**Version**: 1.2.0 | **Ratified**: 2025-12-30 | **Last Amended**: 2025-12-31

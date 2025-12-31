@@ -10,6 +10,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:integration": "./scripts/integration-test.sh",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
@@ -17,7 +18,7 @@
     "format:check": "biome format .",
     "build": "tsc",
     "clean": "rm -rf dist",
-    "quality": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run test"
+    "quality": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run test && npm run test:integration"
   },
   "keywords": ["mcp", "mermaid", "svg", "diagram"],
   "license": "MIT",
