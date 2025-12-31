@@ -35,23 +35,23 @@
 
 ### Phase 1: Setup (Project Initialization)
 
-- [ ] T001 [PR1] Create package.json with npm init and add dependencies per research.md (`@modelcontextprotocol/sdk`, `zod`, `@biomejs/biome`, `typescript`, `vitest`, `@types/node`)
-- [ ] T002 [PR1] Create tsconfig.json with TypeScript 5.x config (ES2022 target, ESNext modules, strict mode) per research.md
-- [ ] T003 [P] [PR1] Create biome.json with Biome configuration for linting and formatting
-- [ ] T004 [P] [PR1] Create vitest.config.ts with Vitest configuration for behavior tests
-- [ ] T005 [PR1] Add npm scripts to package.json: `test`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `build`, `clean`, `quality`
+- [X] T001 [PR1] Create package.json with npm init and add dependencies per research.md (`@modelcontextprotocol/sdk`, `zod`, `@biomejs/biome`, `typescript`, `vitest`, `@types/node`)
+- [X] T002 [PR1] Create tsconfig.json with TypeScript 5.x config (ES2022 target, ESNext modules, strict mode) per research.md
+- [X] T003 [P] [PR1] Create biome.json with Biome configuration for linting and formatting
+- [X] T004 [P] [PR1] Create vitest.config.ts with Vitest configuration for behavior tests
+- [X] T005 [PR1] Add npm scripts to package.json: `test`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `build`, `clean`, `quality`
 
 ### Phase 2: Foundational (Core Infrastructure)
 
 **Purpose**: MCP server skeleton and CI pipeline that MUST be complete before healthcheck tool implementation
 
-- [ ] T006 [PR1] Create src/version.ts to export VERSION from package.json
-- [ ] T007 [PR1] Create src/tools/types.ts with ToolConfig interface per research.md pattern
-- [ ] T008 [PR1] Create src/tools/index.ts as tool registry (empty array initially)
-- [ ] T009 [PR1] Create src/schemas/index.ts as schema exports (empty initially)
-- [ ] T010 [PR1] Create src/index.ts with MCP server entry point using stdio transport (no tools registered yet)
-- [ ] T011 [P] [PR1] Create .github/workflows/ci.yml with GitHub Actions (run on PRs and pushes to main, < 10 minutes, same gates as local)
-- [ ] T012 [PR1] Create tests/behavior/server.test.ts with server startup behavior tests (server starts, accepts connection)
+- [X] T006 [PR1] Create src/version.ts to export VERSION from package.json
+- [X] T007 [PR1] Create src/tools/types.ts with ToolConfig interface per research.md pattern
+- [X] T008 [PR1] Create src/tools/index.ts as tool registry (empty array initially)
+- [X] T009 [PR1] Create src/schemas/index.ts as schema exports (empty initially)
+- [X] T010 [PR1] Create src/index.ts with MCP server entry point using stdio transport (no tools registered yet)
+- [X] T011 [P] [PR1] Create .github/workflows/ci.yml with GitHub Actions (run on PRs and pushes to main, < 10 minutes, same gates as local)
+- [X] T012 [PR1] Create tests/behavior/server.test.ts with server startup behavior tests (server starts, accepts connection)
 
 **Checkpoint**: Foundation ready - `npm run quality` passes, CI workflow validates, server skeleton runs
 
@@ -83,23 +83,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [PR2] Create tests/behavior/healthcheck.test.ts - test: returns ok=true, status="healthy" when invoked with no params
-- [ ] T014 [P] [PR2] Add test: returns valid semver version string in response
-- [ ] T015 [P] [PR2] Add test: returns valid ISO 8601 timestamp in response
-- [ ] T016 [P] [PR2] Add test: echoes exact value when echo parameter provided
-- [ ] T017 [P] [PR2] Add test: omits echo field when no echo parameter provided
-- [ ] T018 [P] [PR2] Add test: handles empty string echo correctly
-- [ ] T019 [P] [PR2] Add test: preserves special characters in echo value
-- [ ] T020 [P] [PR2] Add test: responds within 100ms (per SC-002)
+- [X] T013 [P] [PR2] Create tests/behavior/healthcheck.test.ts - test: returns ok=true, status="healthy" when invoked with no params
+- [X] T014 [P] [PR2] Add test: returns valid semver version string in response
+- [X] T015 [P] [PR2] Add test: returns valid ISO 8601 timestamp in response
+- [X] T016 [P] [PR2] Add test: echoes exact value when echo parameter provided
+- [X] T017 [P] [PR2] Add test: omits echo field when no echo parameter provided
+- [X] T018 [P] [PR2] Add test: handles empty string echo correctly
+- [X] T019 [P] [PR2] Add test: preserves special characters in echo value
+- [X] T020 [P] [PR2] Add test: responds within 100ms (per SC-002)
 
 ### Implementation for Healthcheck
 
-- [ ] T021 [PR2] Create src/schemas/healthcheck.ts with Zod schemas (HealthcheckInputSchema, HealthcheckOutputSchema) matching contracts/
-- [ ] T022 [PR2] Update src/schemas/index.ts to export healthcheck schemas
-- [ ] T023 [PR2] Create src/tools/healthcheck.ts implementing ToolConfig pattern with handler logic
-- [ ] T024 [PR2] Update src/tools/index.ts to register healthcheck tool
-- [ ] T025 [PR2] Update src/index.ts to register healthcheck tool with MCP server
-- [ ] T026 [PR2] Run `npm run quality` - all tests must pass
+- [X] T021 [PR2] Create src/schemas/healthcheck.ts with Zod schemas (HealthcheckInputSchema, HealthcheckOutputSchema) matching contracts/
+- [X] T022 [PR2] Update src/schemas/index.ts to export healthcheck schemas
+- [X] T023 [PR2] Create src/tools/healthcheck.ts implementing ToolConfig pattern with handler logic
+- [X] T024 [PR2] Update src/tools/index.ts to register healthcheck tool
+- [X] T025 [PR2] Update src/index.ts to register healthcheck tool with MCP server
+- [X] T026 [PR2] Run `npm run quality` - all tests must pass
 
 **Checkpoint**: Healthcheck tool complete - User Stories 1 and 2 fully functional, independently testable
 
