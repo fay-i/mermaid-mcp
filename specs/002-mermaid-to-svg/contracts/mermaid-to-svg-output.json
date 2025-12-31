@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mermaid-to-svg-output",
+  "title": "MermaidToSvgOutput",
+  "description": "Output schema for the mermaid_to_svg MCP tool",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/SuccessResponse"
+    },
+    {
+      "$ref": "#/definitions/ErrorResponse"
+    }
+  ],
+  "definitions": {
+    "Warning": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Warning identifier"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable warning description"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenderError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_INPUT",
+            "INPUT_TOO_LARGE",
+            "PARSE_ERROR",
+            "UNSUPPORTED_DIAGRAM",
+            "INVALID_CONFIG",
+            "INVALID_TIMEOUT",
+            "RENDER_TIMEOUT",
+            "RENDER_FAILED"
+          ],
+          "description": "Stable error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error description"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional context (e.g., line/column for parse errors)",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "SuccessResponse": {
+      "type": "object",
+      "required": ["ok", "request_id", "svg", "warnings", "errors"],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique request identifier for correlation"
+        },
+        "svg": {
+          "type": "string",
+          "description": "Valid SVG 1.1 markup",
+          "pattern": "^<svg[\\s\\S]*<\\/svg>$"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Warning"
+          },
+          "description": "Non-fatal warnings (may be empty)"
+        },
+        "errors": {
+          "type": "array",
+          "maxItems": 0,
+          "description": "Empty array for success responses"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["ok", "request_id", "warnings", "errors"],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique request identifier for correlation"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Warning"
+          },
+          "description": "Non-fatal warnings (may be empty)"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RenderError"
+          },
+          "minItems": 1,
+          "description": "Array of errors (at least one for error responses)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "ok": true,
+      "request_id": "550e8400-e29b-41d4-a716-446655440000",
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><rect/></svg>",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "ok": false,
+      "request_id": "550e8400-e29b-41d4-a716-446655440001",
+      "warnings": [],
+      "errors": [
+        {
+          "code": "PARSE_ERROR",
+          "message": "Syntax error at line 2, column 5: unexpected token '>'",
+          "details": {
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "ok": false,
+      "request_id": "550e8400-e29b-41d4-a716-446655440002",
+      "warnings": [],
+      "errors": [
+        {
+          "code": "RENDER_TIMEOUT",
+          "message": "Render exceeded timeout of 5000ms"
+        }
+      ]
+    }
+  ]
+}
