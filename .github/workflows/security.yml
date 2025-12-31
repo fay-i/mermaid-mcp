@@ -13,11 +13,9 @@ on:
 
 permissions:
   contents: read
-  security-events: write
   pull-requests: write
   issues: write
   id-token: write
-  actions: read
 
 jobs:
   claude-security-review:
@@ -71,11 +69,8 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: reports/dependency-check-report.sarif
+      # Note: SARIF upload to GitHub Security tab requires Code Security to be enabled
+      # in repository settings. Reports are available as artifacts below.
 
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
