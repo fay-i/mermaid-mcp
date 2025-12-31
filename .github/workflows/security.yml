@@ -48,8 +48,9 @@ jobs:
             --enableRetired
             --enableExperimental
             --nvdApiDelay 6000
-            ${{ secrets.NVD_API_KEY && format('--nvdApiKey {0}', secrets.NVD_API_KEY) || '' }}
             --failOnCVSS 7
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
