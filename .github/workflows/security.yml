@@ -1,5 +1,5 @@
 # Security scanning workflow
-# Runs OWASP Dependency Check on pushes to main
+# Runs OWASP Dependency Check, npm audit, and Claude Code security review
 
 name: Security
 
@@ -14,8 +14,30 @@ on:
 permissions:
   contents: read
   security-events: write
+  pull-requests: write
+  issues: write
+  id-token: write
 
 jobs:
+  claude-security-review:
+    name: Claude Security Review
+    runs-on: ubuntu-latest
+    # Only run on PRs (not pushes to main)
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code Security Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: "/security-review"
+          additional_permissions: |
+            actions: read
   dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
