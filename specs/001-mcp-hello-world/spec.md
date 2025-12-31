@@ -92,7 +92,7 @@ As a developer maintaining the codebase, I want a single command that runs all q
 
 ## Assumptions
 
-- Node.js 18+ runtime is available in the deployment environment.
+- Node.js 24+ runtime is available in the deployment environment.
 - The MCP SDK (`@modelcontextprotocol/sdk`) is stable and suitable for production use.
 - Claude Code supports stdio transport for MCP server connections.
 - The project will use TypeScript for type safety and developer experience.

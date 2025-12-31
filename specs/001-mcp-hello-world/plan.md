@@ -9,7 +9,7 @@ Set up a minimal MCP server using stdio transport with a `healthcheck` tool that
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x, Node.js 20+, ESM modules
+**Language/Version**: TypeScript 5.x, Node.js 24+, ESM modules
 **Primary Dependencies**: `@modelcontextprotocol/sdk`, `zod` (schema validation)
 **Storage**: N/A (stateless healthcheck tool)
 **Testing**: Vitest (behavior tests, per constitution TDD requirements)
