@@ -41,10 +41,14 @@ jobs:
           path: "."
           format: "HTML,JSON,SARIF"
           out: "reports"
+          # NVD API rate limits: 5 req/30s without key, 50 req/30s with key
+          # Recommended: 6 second delay between requests
+          # See: https://nvd.nist.gov/developers/start-here
           args: >
             --enableRetired
             --enableExperimental
-            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+            --nvdApiDelay 6000
+            ${{ secrets.NVD_API_KEY && format('--nvdApiKey {0}', secrets.NVD_API_KEY) || '' }}
             --failOnCVSS 7
 
       - name: Upload SARIF to GitHub Security
