@@ -125,10 +125,10 @@
 
 ### Validation Tasks
 
-- [ ] T027 [PR3] Run clean slate protocol: `npm run clean && rm -rf node_modules && npm install && npm run quality`
-- [ ] T028 [PR3] Validate quickstart.md: fresh clone, install, build, quality checks
-- [ ] T029 [PR3] Verify Claude Code integration: add MCP config, restart, invoke healthcheck
-- [ ] T030 [PR3] Verify echo functionality: invoke healthcheck with echo parameter
+- [X] T027 [PR3] Run clean slate protocol: `npm run clean && rm -rf node_modules && npm install && npm run quality`
+- [X] T028 [PR3] Validate quickstart.md: fresh clone, install, build, quality checks
+- [X] T029 [PR3] Verify Claude Code integration: add MCP config, restart, invoke healthcheck
+- [X] T030 [PR3] Verify echo functionality: invoke healthcheck with echo parameter
 
 **Checkpoint**: All user stories validated, quality gates confirmed working
 
