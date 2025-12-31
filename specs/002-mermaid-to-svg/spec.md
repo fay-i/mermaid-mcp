@@ -125,7 +125,7 @@ A developer accidentally provides extremely large input or triggers resource-int
 - **FR-001**: System MUST accept Mermaid diagram source code as a required input parameter (`code`)
 - **FR-002**: System MUST return valid SVG 1.1 markup when rendering succeeds
 - **FR-003**: System MUST support optional theme parameter accepting values: default, dark, forest, neutral
-- **FR-004**: System MUST support optional background parameter accepting color values (e.g., transparent, hex colors)
+- **FR-004**: System MUST support optional background parameter accepting: "transparent", CSS color names (e.g., "white", "black"), or hex colors in format "#RRGGBB" or "#RGB"
 - **FR-005**: System MUST support optional config_json parameter for advanced Mermaid configuration
 - **FR-006**: System MUST support optional timeout_ms parameter with range 1000-120000 (default: 30000)
 - **FR-007**: System MUST return consistent JSON response structure for all outcomes (ok, request_id, warnings, errors)
@@ -152,7 +152,7 @@ A developer accidentally provides extremely large input or triggers resource-int
 - **SC-001**: Users can convert a simple Mermaid flowchart to SVG in under 5 seconds
 - **SC-002**: All 8 supported diagram types successfully render to valid SVG
 - **SC-003**: 100% of rendering requests produce deterministic output (same input = identical SVG)
-- **SC-004**: Users receive actionable error messages that identify the specific problem within 1 second
+- **SC-004**: Users receive error messages within 1 second that include: (a) stable error code, (b) human-readable description, (c) for PARSE_ERROR: line/column number when available from Mermaid parser
 - **SC-005**: System cleans up all resources after every request (zero resource leaks)
 - **SC-006**: Timeout enforcement accuracy within 500ms of specified value
 - **SC-007**: Users can customize diagram appearance using theme and background parameters

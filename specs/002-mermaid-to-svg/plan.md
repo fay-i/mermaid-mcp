@@ -10,7 +10,7 @@ Implement core `mermaid_to_svg` MCP tool for converting Mermaid diagram source t
 ## Technical Context
 
 **Language/Version**: TypeScript 5.6+, Node.js 24+, ESM modules
-**Primary Dependencies**: `@mermaid-js/mermaid-cli` ^11.x, `puppeteer` ^23.x, `@modelcontextprotocol/sdk`, `zod`
+**Primary Dependencies**: `@mermaid-js/mermaid-cli` ^11.12.0, `puppeteer` ^23.0.0, `@modelcontextprotocol/sdk`, `zod`
 **Storage**: N/A (stateless rendering, temp files cleaned up after each request)
 **Testing**: Vitest (unit/behavior), MCP Inspector CLI (integration)
 **Target Platform**: Node.js 24+ server
@@ -72,7 +72,7 @@ src/
 │   └── mermaid-to-svg.ts  # NEW: Input/output schemas
 └── renderer/            # NEW: Mermaid rendering logic
     ├── index.ts         # Renderer facade
-    ├── browser-pool.ts  # Browser lifecycle management
+    ├── browser.ts       # Browser lifecycle management (launch/close per request)
     └── types.ts         # Renderer-specific types
 
 tests/
