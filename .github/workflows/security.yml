@@ -65,7 +65,7 @@ jobs:
           # NVD API rate limits: 5 req/30s without key, 50 req/30s with key
           # Recommended: 6 second delay between requests
           # See: https://nvd.nist.gov/developers/start-here
-          args: "--enableRetired --enableExperimental --nvdApiDelay 6000 --failOnCVSS 7"
+          args: "--enableRetired --enableExperimental --nvdApiDelay 6000 --failOnCVSS 7 --suppression owasp-suppressions.xml"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 

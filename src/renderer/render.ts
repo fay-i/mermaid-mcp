@@ -24,10 +24,12 @@ export async function render(
     config = {},
   } = options;
 
-  // Merge user config with deterministic settings
+  // Merge user config with security and deterministic settings
   const mermaidConfig = {
     ...config,
     theme,
+    // Security: encode HTML tags, disable click handlers (defense in depth)
+    securityLevel: "strict" as const,
     // Deterministic output settings (T019)
     deterministicIds: true,
     deterministicIDSeed: "mermaid-mcp",
