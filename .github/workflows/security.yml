@@ -102,8 +102,7 @@ jobs:
         run: npm ci
 
       - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+        run: npm audit --audit-level=critical
 
       - name: Run npm audit (JSON for review)
         run: npm audit --json > npm-audit-report.json || true
