@@ -1,0 +1,49 @@
+# Dependabot configuration for mermaid-mcp
+# Semi-strict: weekly updates, grouped by type, security updates prioritized
+
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Group updates to reduce PR noise
+    groups:
+      # Production dependencies - more careful
+      production:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Dev dependencies - can be more aggressive
+      development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Security updates are always created immediately
+    open-pull-requests-limit: 10
+    # Commit message format
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+    # Labels for PRs
+    labels:
+      - "dependencies"
+    # Reviewers (optional - add team/users if needed)
+    # reviewers:
+    #   - "team-name"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"
