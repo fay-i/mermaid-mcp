@@ -39,21 +39,17 @@ jobs:
         with:
           project: "mermaid-mcp"
           path: "."
-          format: "HTML,JSON,SARIF"
+          format: "ALL"
           out: "reports"
           # NVD API rate limits: 5 req/30s without key, 50 req/30s with key
           # Recommended: 6 second delay between requests
           # See: https://nvd.nist.gov/developers/start-here
-          args: >
-            --enableRetired
-            --enableExperimental
-            --nvdApiDelay 6000
-            --failOnCVSS 7
+          args: "--enableRetired --enableExperimental --nvdApiDelay 6000 --failOnCVSS 7"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: reports/dependency-check-report.sarif
