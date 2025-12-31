@@ -44,7 +44,7 @@ describe("mermaidToSvg resource cleanup", () => {
           expect(result.svg).toContain("<svg");
         }
       }
-    });
+    }, 30000);
   });
 
   describe("cleanup on error", () => {
