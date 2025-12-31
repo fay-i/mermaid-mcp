@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HealthcheckInput",
+  "description": "Input schema for the healthcheck MCP tool",
+  "type": "object",
+  "properties": {
+    "echo": {
+      "type": "string",
+      "description": "Optional value to echo back for round-trip verification"
+    }
+  },
+  "additionalProperties": false
+}

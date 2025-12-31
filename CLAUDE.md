@@ -163,3 +163,10 @@ NON-NEGOTIABLE principles:
 - VII. PR Structure and Review Governance
 - VIII. Iteration Loop Discipline
 - X. Local Gates Before Commit/Push
+
+## Active Technologies
+- TypeScript 5.x, Node.js 20+, ESM modules + `@modelcontextprotocol/sdk`, `zod` (schema validation) (001-mcp-hello-world)
+- N/A (stateless healthcheck tool) (001-mcp-hello-world)
+
+## Recent Changes
+- 001-mcp-hello-world: Added TypeScript 5.x, Node.js 20+, ESM modules + `@modelcontextprotocol/sdk`, `zod` (schema validation)
