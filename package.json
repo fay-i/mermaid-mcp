@@ -1,0 +1,35 @@
+{
+  "name": "mermaid-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for rendering Mermaid diagrams to vector artifacts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:integration": "./scripts/integration-test.sh",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "quality": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run test && npm run test:integration"
+  },
+  "keywords": ["mcp", "mermaid", "svg", "diagram"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}

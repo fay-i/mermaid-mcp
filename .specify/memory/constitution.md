@@ -1,50 +1,232 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+==================
+Version change: 1.1.0 → 1.2.0 (minor: added mandatory integration testing)
+Modified principles:
+  - X. Local Gates: Added integration tests as mandatory quality gate
+Added sections:
+  - Integration test requirement in Local Gates
+  - MCP Inspector CLI verification as quality gate
+Removed sections: None
+Templates requiring updates:
+  - CLAUDE.md: Updated with integration test commands
+Follow-up TODOs: None
+
+Previous change (1.0.0 → 1.1.0):
+  - Added I. Epistemic Humility (NON-NEGOTIABLE)
+  - Enhanced CI-First with Clean Slate Protocol
+-->
+
+# Mermaid Printer Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Epistemic Humility (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**The problem is ALWAYS in YOUR code.** When the tooling, compiler, linter, or test runner says something is wrong, assume IT is right and YOU are wrong. Do not argue with the tools.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Be skeptical of yourself:**
+- You cannot "run" code mentally. You can only guess.
+- Your guesses are often wrong. The tools are rarely wrong.
+- If a test fails, the test is telling you something. Listen.
+- If the compiler rejects your code, the compiler is correct. Fix YOUR code.
+- If the linter warns you, the linter knows something you forgot. Heed the warning.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Never dismiss tool output:**
+- "That's a false positive" → It almost never is. Investigate properly.
+- "That test is flaky" → The test is exposing a real race condition. Fix it.
+- "The linter is being pedantic" → The linter is preventing future bugs. Comply.
+- "It works on my machine" → You're not running in CI. Run the full check suite.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+**The only way to KNOW if code works is to RUN THE CHECKS.** You cannot know otherwise.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Proven confidence vs. false confidence:**
+- **False confidence**: "This should work" / "I'm confident this is correct" / "The logic looks right"
+- **Proven confidence**: "All tests pass" / "The linter found no issues" / "TypeScript compiles cleanly"
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+False confidence causes missed critical gaps. We ship tests with unimplemented stubs and wonder why CI fails. We push code that "looks right" but has subtle bugs the type checker would have caught. The instrumentation is your proof. Without it, confidence is just hope.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### II. TDD by Behavior (NON-NEGOTIABLE)
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+No implementation code MUST exist without a failing test first. Tests MUST validate **behavior**—contracts, error mapping, cleanup, timeouts, determinism—not internal structure.
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+- Every code change follows: **Problem statement → Failing test → Minimal code → Pass**
+- Red → Green → Refactor, one behavior at a time
+- Tests MUST assert observable outcomes, NEVER implementation details
+- A test that cannot fail is not a test; delete it
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### III. CI-First Local Verification (NON-NEGOTIABLE)
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Working software is the only success metric.** CI is the source of truth. Before EVERY push to remote, you MUST run ALL CI checks locally from a clean slate. A broken CI check is a preventable failure. Prevent it.
+
+**The Clean Slate Protocol** — Before every `git push`:
+
+```bash
+# 1. Clean all build artifacts
+npm run clean  # or yarn clean
+
+# 2. Fresh dependency installation (like ephemeral CI runner)
+rm -rf node_modules && npm install  # or yarn install
+
+# 3. Run ALL quality checks (single command)
+npm run quality  # tests, typecheck, lint, format check, build
+```
+
+**There are NO exceptions:**
+- "I only changed a comment" → Run the checks
+- "It's just a typo fix" → Run the checks
+- "The CI will catch it" → You catch it first
+- "It wasn't my changes" → If it fails, fix it before pushing
+
+- No excuses. No exceptions. No "it works on my machine."
+- Local gates MUST mirror CI gates exactly
+- If local passes but CI fails, local gates are broken—fix them immediately
+
+### IV. No Skips, No Ignores, No Bypasses (NON-NEGOTIABLE)
+
+NEVER use test skips, lint disables, `// @ts-ignore`, `// eslint-disable`, `// prettier-ignore`, or similar bypasses.
+
+- "Passing" means passing without hacks
+- If a rule is wrong, fix the rule globally; do not suppress it locally
+- Disabled tests MUST be deleted, not skipped
+
+### V. Type Policy
+
+Implementation code and test code have different strictness levels.
+
+**Implementation code (strict)**:
+- NO `any` type
+- NO `Partial<T>` as a workaround for incomplete data
+- NO unsafe casts (`as unknown as T`)
+- Use `unknown` with proper type narrowing when dealing with external data
+
+**Test code (pragmatic)**:
+- MAY use `any` or `Partial<T>` for test fixtures
+- MUST NOT weaken real behavior assertions
+- Type shortcuts are for convenience, not for hiding bugs
+
+### VI. Tool Contract Discipline
+
+MCP tools MUST have explicit, stable contracts.
+
+- Every tool MUST define input/output JSON schemas
+- Every tool MUST use stable, documented error codes
+- Every tool MUST have behavior tests covering:
+  - Valid input → expected output
+  - Invalid input → appropriate error
+  - Renderer failure → graceful degradation
+  - Timeout → cleanup and error
+  - Resource cleanup → no leaks
+- Outputs MUST be deterministic: same Mermaid + same options = same output
+
+### VII. PR Structure and Review Governance (NON-NEGOTIABLE)
+
+Work is delivered in atomic, reviewable units.
+
+- Foundational setup (project scaffold, CI, tooling) is its own PR
+- Each MCP tool is its own PR
+- PRs MUST be created via GitHub MCP with complete-but-concise descriptions
+- All commits are reviewed by Claude Code
+- All critical/major feedback MUST be addressed before merge
+- PRs MUST NOT bundle unrelated changes
+
+### VIII. Iteration Loop Discipline
+
+Work proceeds in explicit cycles. After pushing, wait up to 10 minutes for CI and Claude Code review to complete, poll for feedback, then react.
+
+**The Loop**:
+1. Problem statement (what behavior are we adding/fixing?)
+2. Tests (write failing test for that behavior)
+3. Minimal code (make the test pass, nothing more)
+4. Run local gates (must pass)
+5. Push and wait (up to 10 minutes for CI + Claude Code review)
+6. Poll for feedback
+7. Outcome: PASS → done | Feedback → new problem statement → repeat
+
+- PRs MUST document iteration loops briefly to prove discipline
+- The 10-minute window is for CI/review completion, not idle time
+- React to feedback immediately once received
+- Loops continue until PASS with no outstanding issues
+
+### IX. CI in GitHub Actions
+
+GitHub Actions runs on all pull requests and on pushes to `main` only.
+
+- CI runtime target: < 10 minutes
+- Caching MUST be used to avoid redundant work
+- NO `continue-on-error: true` or "allow failure" configurations
+- CI MUST run the same gates as local verification
+- Any CI failure blocks merge
+
+### X. Local Gates Before Commit/Push (NON-NEGOTIABLE)
+
+A single command MUST exist that runs all quality checks.
+
+**The command MUST run**:
+- Type checking
+- Linting
+- Format checking
+- Build (if applicable)
+- Unit tests (behavior tests)
+- Integration tests (MCP Inspector CLI verification)
+
+**Integration tests are mandatory.** Unit tests verify code in isolation; integration tests verify the MCP server actually works end-to-end. Both MUST pass.
+
+- Developers MUST run this command before every commit/push
+- CI MUST run this exact command
+- The command MUST exit non-zero on any failure
+
+### XI. Task Derivation Rule
+
+Tasks are derived from plans; they are never invented in isolation.
+
+- `/speckit.tasks` MUST derive tasks from `/speckit.plan` output
+- The constitution defines rules, not tasks
+- The spec defines contracts and requirements (what)
+- The plan defines architecture and approach (how)
+- Tasks are work items derived from the plan (do)
+- No "invented tasks" that bypass spec → plan → tasks flow
+
+## Enforcement Checklist
+
+### Local Gates (before every commit/push)
+
+- [ ] Clean Slate Protocol executed (clean, fresh install, quality command)
+- [ ] Quality command passes (types, lint, format, build, unit tests, integration tests)
+- [ ] No skipped tests, no lint disables, no type ignores
+- [ ] All new code has corresponding behavior tests
+- [ ] Tests fail before implementation, pass after
+- [ ] Integration tests verify MCP server works end-to-end
+
+### CI Gates (automated on every PR)
+
+- [ ] Same quality command as local
+- [ ] No allow-failure jobs
+- [ ] Runtime < 10 minutes
+- [ ] Merge blocked on any failure
+
+### PR Gates (before merge)
+
+- [ ] Atomic scope (one tool or one concern per PR)
+- [ ] Complete description via GitHub MCP
+- [ ] Iteration loops documented
+- [ ] All critical/major review feedback addressed
+- [ ] CI passing
+
+## Amendments
+
+Changing this constitution requires:
+
+1. Explicit rationale documenting why the change is needed
+2. Impact assessment on existing specs, plans, and tasks
+3. Owner sign-off for any change to NON-NEGOTIABLE principles
+4. Version increment following semantic versioning:
+   - MAJOR: Removing or fundamentally changing a principle
+   - MINOR: Adding new principles or significant expansions
+   - PATCH: Clarifications, typo fixes, non-semantic refinements
+
+NON-NEGOTIABLE principles (I, II, III, IV, VII, VIII, X) MUST NOT be weakened without explicit owner sign-off and documented exceptional circumstances.
+
+---
+
+**Version**: 1.2.0 | **Ratified**: 2025-12-30 | **Last Amended**: 2025-12-31
