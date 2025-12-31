@@ -162,6 +162,51 @@ assert_contains "$output" 'echo\\": \\"hello-world-123' "handles alphanumeric wi
 
 echo ""
 
+# ----------------------------------------------------------------------------
+# Test: tools/list - Server exposes mermaid_to_svg tool
+# ----------------------------------------------------------------------------
+log_info "Test: tools/list - Server exposes mermaid_to_svg tool"
+
+output=$(run_mcp_cli "tools/list")
+assert_contains "$output" '"name": "mermaid_to_svg"' "mermaid_to_svg tool is listed"
+assert_contains "$output" 'Render Mermaid diagram source code to SVG' "mermaid_to_svg has description"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Basic flowchart rendering
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Basic flowchart rendering"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;")
+assert_contains "$output" 'ok\\": true' "returns ok=true"
+assert_contains "$output" 'request_id\\":' "returns request_id"
+assert_contains "$output" '<svg' "returns SVG content"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Invalid syntax returns error
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Invalid syntax returns error"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=invalid mermaid syntax @#$%")
+assert_contains "$output" 'ok\\": false' "returns ok=false for invalid syntax"
+assert_contains "$output" 'RENDER_FAILED' "returns RENDER_FAILED error code"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Theme parameter
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Theme parameter"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;" --tool-arg "theme=dark")
+assert_contains "$output" 'ok\\": true' "renders with dark theme"
+assert_contains "$output" '<svg' "returns SVG content with theme"
+
+echo ""
+
 # ============================================================================
 # Summary
 # ============================================================================

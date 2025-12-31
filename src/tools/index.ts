@@ -1,6 +1,7 @@
 import { healthcheckTool } from "./healthcheck.js";
-import type { ToolConfig } from "./types.js";
+import { mermaidToSvgTool } from "./mermaid-to-svg.js";
 
-export const tools: ToolConfig[] = [healthcheckTool];
+// Use a readonly tuple to preserve the specific types of each tool
+export const tools = [healthcheckTool, mermaidToSvgTool] as const;
 
-export { healthcheckTool };
+export { healthcheckTool, mermaidToSvgTool };

@@ -4,12 +4,14 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type {
-  MermaidToSvgInput,
-  MermaidToSvgOutput,
-  RenderError,
+import {
+  MermaidToSvgInputSchema,
+  type MermaidToSvgInput,
+  type MermaidToSvgOutput,
+  type RenderError,
 } from "../schemas/mermaid-to-svg.js";
 import { closeBrowser, launchBrowser, render } from "../renderer/index.js";
+import type { ToolConfig } from "./types.js";
 
 /** Maximum allowed input size in bytes (1MB) */
 const MAX_INPUT_SIZE = 1_048_576;
@@ -264,3 +266,18 @@ export async function mermaidToSvg(
     errors: [],
   };
 }
+
+/**
+ * MCP tool configuration for mermaid_to_svg.
+ * Converts Mermaid diagram source code to SVG format.
+ */
+export const mermaidToSvgTool: ToolConfig<
+  typeof MermaidToSvgInputSchema.shape,
+  MermaidToSvgOutput
+> = {
+  name: "mermaid_to_svg",
+  description:
+    "Render Mermaid diagram source code to SVG format. Supports flowcharts, sequence diagrams, class diagrams, and more.",
+  inputSchema: MermaidToSvgInputSchema,
+  handler: mermaidToSvg,
+};
