@@ -56,7 +56,7 @@ export const RenderErrorSchema = z.object({
   /** Human-readable error description */
   message: z.string(),
   /** Additional context (e.g., line/column for parse errors) */
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type RenderError = z.infer<typeof RenderErrorSchema>;
