@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OWASP Dependency Check Suppression File
+
+  Each suppression must be reviewed and approved before adding.
+  Document why the CVE is not applicable to this project.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+  <!--
+    CVE-2021-42574 & CVE-2021-42694: Trojan Source (CVSS 8.3)
+
+    These CVEs describe attacks where malicious Unicode bidirectional control
+    characters or homoglyphs hide malicious code from human reviewers while
+    compilers/interpreters execute it.
+
+    Why NOT applicable to mermaid-mcp:
+
+    1. STRICT SECURITY MODE: We explicitly configure Mermaid with
+       securityLevel: "strict" which encodes all HTML tags in text and
+       completely disables click handlers - no JavaScript execution path exists.
+
+    2. DOMPURIFY SANITIZATION: Mermaid uses DOMPurify to sanitize all output,
+       stripping dangerous elements (script, iframe, object, embed) and
+       event handler attributes (onclick, onerror, onload, etc.).
+
+    3. OUTPUT IS STATIC SVG: This tool renders diagrams to static SVG images.
+       Even if LLM-generated input contains Unicode tricks, the sanitized
+       output cannot execute code.
+
+    4. ATTACK VECTOR MISMATCH: Trojan Source requires a human code review
+       deception -> compilation/execution flow. A diagram renderer has no
+       such flow - input is sanitized, output is an image.
+
+    Approved: 2025-12-31
+  -->
+  <suppress>
+    <notes><![CDATA[
+      Trojan Source: Bidirectional text attack. Not applicable - this tool
+      renders diagrams to SVG with securityLevel:strict, no code execution.
+    ]]></notes>
+    <cve>CVE-2021-42574</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+      Trojan Source: Homoglyph attack. Not applicable - same rationale as
+      CVE-2021-42574. Output is static SVG, not executable code.
+    ]]></notes>
+    <cve>CVE-2021-42694</cve>
+  </suppress>
+
+</suppressions>

@@ -162,6 +162,104 @@ assert_contains "$output" 'echo\\": \\"hello-world-123' "handles alphanumeric wi
 
 echo ""
 
+# ----------------------------------------------------------------------------
+# Test: tools/list - Server exposes mermaid_to_svg tool
+# ----------------------------------------------------------------------------
+log_info "Test: tools/list - Server exposes mermaid_to_svg tool"
+
+output=$(run_mcp_cli "tools/list")
+assert_contains "$output" '"name": "mermaid_to_svg"' "mermaid_to_svg tool is listed"
+assert_contains "$output" 'Render Mermaid diagram source code to SVG' "mermaid_to_svg has description"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Basic flowchart rendering
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Basic flowchart rendering"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;")
+assert_contains "$output" 'ok\\": true' "returns ok=true"
+assert_contains "$output" 'request_id\\":' "returns request_id"
+assert_contains "$output" '<svg' "returns SVG content"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Invalid syntax returns error
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Invalid syntax returns error"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=invalid mermaid syntax @#$%")
+assert_contains "$output" 'ok\\": false' "returns ok=false for invalid syntax"
+assert_contains "$output" 'RENDER_FAILED' "returns RENDER_FAILED error code"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - Theme parameter
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Theme parameter"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;" --tool-arg "theme=dark")
+assert_contains "$output" 'ok\\": true' "renders with dark theme"
+assert_contains "$output" '<svg' "returns SVG content with theme"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_svg - All 8 diagram types (T037)
+# Note: Using "<svg" as assertion since it's simpler to grep in multiline output
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_svg - Flowchart diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B-->C;")
+assert_contains "$output" '<svg' "flowchart renders successfully"
+
+log_info "Test: mermaid_to_svg - Sequence diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=sequenceDiagram
+    Alice->>Bob: Hello
+    Bob-->>Alice: Hi")
+assert_contains "$output" '<svg' "sequence diagram renders successfully"
+
+log_info "Test: mermaid_to_svg - Class diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=classDiagram
+    Animal <|-- Duck
+    Animal : +int age")
+assert_contains "$output" '<svg' "class diagram renders successfully"
+
+log_info "Test: mermaid_to_svg - State diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=stateDiagram-v2
+    [*] --> Still
+    Still --> Moving")
+assert_contains "$output" '<svg' "state diagram renders successfully"
+
+log_info "Test: mermaid_to_svg - ER diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=erDiagram
+    CUSTOMER ||--o{ ORDER : places")
+assert_contains "$output" '<svg' "ER diagram renders successfully"
+
+log_info "Test: mermaid_to_svg - Gantt chart type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=gantt
+    title Project
+    section Phase
+    Task1 :a1, 2024-01-01, 30d")
+assert_contains "$output" '<svg' "gantt chart renders successfully"
+
+log_info "Test: mermaid_to_svg - Pie chart type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg 'code=pie title Pets
+    "Dogs" : 50
+    "Cats" : 30')
+assert_contains "$output" '<svg' "pie chart renders successfully"
+
+log_info "Test: mermaid_to_svg - Journey diagram type"
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=journey
+    title My Day
+    section Morning
+      Wake up: 5: Me")
+assert_contains "$output" '<svg' "journey diagram renders successfully"
+
+echo ""
+
 # ============================================================================
 # Summary
 # ============================================================================

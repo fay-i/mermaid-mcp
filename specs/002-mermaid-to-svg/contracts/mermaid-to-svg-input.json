@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mermaid-to-svg-input",
+  "title": "MermaidToSvgInput",
+  "description": "Input schema for the mermaid_to_svg MCP tool",
+  "type": "object",
+  "required": ["code"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1048576,
+      "description": "Mermaid diagram source code"
+    },
+    "theme": {
+      "type": "string",
+      "enum": ["default", "dark", "forest", "neutral"],
+      "default": "default",
+      "description": "Diagram color theme"
+    },
+    "background": {
+      "type": "string",
+      "description": "Background color (CSS color value or 'transparent')",
+      "examples": ["transparent", "#ffffff", "white", "rgb(255,255,255)"]
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Advanced Mermaid configuration as JSON string"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 120000,
+      "default": 30000,
+      "description": "Render timeout in milliseconds"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "code": "graph TD\n  A[Start] --> B[End]"
+    },
+    {
+      "code": "sequenceDiagram\n  Alice->>Bob: Hello",
+      "theme": "dark",
+      "background": "transparent"
+    },
+    {
+      "code": "classDiagram\n  Animal <|-- Duck",
+      "timeout_ms": 10000,
+      "config_json": "{\"theme\":\"neutral\"}"
+    }
+  ]
+}

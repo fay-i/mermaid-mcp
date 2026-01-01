@@ -10,16 +10,21 @@ const server = new McpServer({
 
 // Register all tools with the MCP server
 for (const tool of tools) {
+  // Handler type is validated at registration time via inputSchema
+  const handler = tool.handler as (
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
+
   server.tool(
     tool.name,
     tool.description,
     tool.inputSchema.shape,
-    async (params) => {
-      const result = await tool.handler(params);
+    async (params: Record<string, unknown>) => {
+      const result = await handler(params);
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(result, null, 2),
           },
         ],
