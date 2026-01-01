@@ -20,7 +20,12 @@
     "clean": "rm -rf dist",
     "quality": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run test && npm run test:integration"
   },
-  "keywords": ["mcp", "mermaid", "svg", "diagram"],
+  "keywords": [
+    "mcp",
+    "mermaid",
+    "svg",
+    "diagram"
+  ],
   "license": "MIT",
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.12.0",
@@ -29,9 +34,9 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.0",
-    "@types/node": "^24.0.0",
+    "@biomejs/biome": "^2.3.10",
+    "@types/node": "^25.0.3",
     "typescript": "^5.6.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.0.16"
   }
 }
