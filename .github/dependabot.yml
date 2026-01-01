@@ -1,5 +1,5 @@
 # Dependabot configuration for mermaid-mcp
-# Semi-strict: weekly updates, grouped by type, security updates prioritized
+# Allowlist approach: only monitor core direct dependencies, not transitives or peers
 
 version: 2
 updates:
@@ -9,32 +9,36 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # Only update core direct dependencies (not transitives or peer deps like puppeteer)
+    allow:
+      # Production
+      - dependency-name: "@mermaid-js/mermaid-cli"
+      - dependency-name: "@modelcontextprotocol/sdk"
+      - dependency-name: "zod"
+      # Development
+      - dependency-name: "@biomejs/biome"
+      - dependency-name: "@types/node"
+      - dependency-name: "typescript"
+      - dependency-name: "vitest"
     # Group updates to reduce PR noise
     groups:
-      # Production dependencies - more careful
       production:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-      # Dev dependencies - can be more aggressive
+        patterns:
+          - "@mermaid-js/*"
+          - "@modelcontextprotocol/*"
+          - "zod"
       development:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-    # Security updates are always created immediately
+        patterns:
+          - "@biomejs/*"
+          - "@types/*"
+          - "typescript"
+          - "vitest"
     open-pull-requests-limit: 10
-    # Commit message format
     commit-message:
       prefix: "deps"
       prefix-development: "deps(dev)"
-    # Labels for PRs
     labels:
       - "dependencies"
-    # Reviewers (optional - add team/users if needed)
-    # reviewers:
-    #   - "team-name"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
