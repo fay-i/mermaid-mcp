@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ArtifactRefSchema } from "./artifact-ref.js";
 
 /**
  * Input schema for the mermaid_to_svg MCP tool.
@@ -102,7 +103,7 @@ export type MermaidToSvgErrorOutput = z.infer<
 >;
 
 /**
- * Output schema for the mermaid_to_svg MCP tool.
+ * Output schema for the mermaid_to_svg MCP tool (original inline mode).
  * Discriminated union: success (ok=true) or error (ok=false).
  */
 export const MermaidToSvgOutputSchema = z.discriminatedUnion("ok", [
@@ -111,3 +112,83 @@ export const MermaidToSvgOutputSchema = z.discriminatedUnion("ok", [
 ]);
 
 export type MermaidToSvgOutput = z.infer<typeof MermaidToSvgOutputSchema>;
+
+// ============================================
+// Cached output schemas (T018)
+// Per contracts/mermaid-to-svg-cached.json
+// ============================================
+
+/**
+ * Warning codes specific to caching.
+ */
+export const CacheWarningCodeSchema = z.enum([
+  "CACHE_UNAVAILABLE",
+  "CACHE_WRITE_FAILED",
+  "QUOTA_EXCEEDED",
+]);
+
+export type CacheWarningCode = z.infer<typeof CacheWarningCodeSchema>;
+
+/**
+ * Cache-specific warning object.
+ */
+export const CacheWarningSchema = z.object({
+  code: CacheWarningCodeSchema,
+  message: z.string(),
+});
+
+export type CacheWarning = z.infer<typeof CacheWarningSchema>;
+
+/**
+ * Success response with artifact reference (cached mode).
+ */
+export const MermaidToSvgCachedSuccessOutputSchema = z.object({
+  ok: z.literal(true),
+  request_id: z.string().uuid(),
+  artifact: ArtifactRefSchema,
+  mode: z.literal("cached"),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(RenderErrorSchema).max(0),
+});
+
+export type MermaidToSvgCachedSuccessOutput = z.infer<
+  typeof MermaidToSvgCachedSuccessOutputSchema
+>;
+
+/**
+ * Success response with inline content (fallback mode).
+ */
+export const MermaidToSvgInlineSuccessOutputSchema = z.object({
+  ok: z.literal(true),
+  request_id: z.string().uuid(),
+  svg: z.string(),
+  mode: z.literal("inline"),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(RenderErrorSchema).max(0),
+});
+
+export type MermaidToSvgInlineSuccessOutput = z.infer<
+  typeof MermaidToSvgInlineSuccessOutputSchema
+>;
+
+/**
+ * Error response (same structure for both modes).
+ */
+export const MermaidToSvgCachedErrorOutputSchema = z.object({
+  ok: z.literal(false),
+  request_id: z.string().uuid(),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(RenderErrorSchema).min(1),
+});
+
+export type MermaidToSvgCachedErrorOutput = z.infer<
+  typeof MermaidToSvgCachedErrorOutputSchema
+>;
+
+/**
+ * Combined cached output type (success cached | success inline | error).
+ */
+export type MermaidToSvgCachedOutput =
+  | MermaidToSvgCachedSuccessOutput
+  | MermaidToSvgInlineSuccessOutput
+  | MermaidToSvgCachedErrorOutput;

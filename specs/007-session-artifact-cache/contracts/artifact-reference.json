@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Artifact Reference Schema",
+  "description": "Lightweight reference returned by render tools when caching is enabled",
+
+  "type": "object",
+  "required": ["artifact_id", "uri", "content_type", "size_bytes"],
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for retrieving the artifact via fetch_artifact"
+    },
+    "uri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^file://",
+      "description": "File URI pointing to the cached artifact"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": ["image/svg+xml", "application/pdf"],
+      "description": "MIME type of the artifact"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Size of the artifact in bytes"
+    }
+  },
+  "additionalProperties": false,
+
+  "examples": [
+    {
+      "description": "SVG artifact reference",
+      "value": {
+        "artifact_id": "550e8400-e29b-41d4-a716-446655440000",
+        "uri": "file:///tmp/mermaid-mcp-cache/abc123/550e8400-e29b-41d4-a716-446655440000.svg",
+        "content_type": "image/svg+xml",
+        "size_bytes": 12345
+      }
+    },
+    {
+      "description": "PDF artifact reference",
+      "value": {
+        "artifact_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        "uri": "file:///tmp/mermaid-mcp-cache/def456/6ba7b810-9dad-11d1-80b4-00c04fd430c8.pdf",
+        "content_type": "application/pdf",
+        "size_bytes": 98765
+      }
+    }
+  ]
+}

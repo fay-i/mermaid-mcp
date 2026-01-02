@@ -8,10 +8,14 @@ import {
   MermaidToPdfInputSchema,
   type MermaidToPdfInput,
   type MermaidToPdfOutput,
+  type MermaidToPdfCachedOutput,
+  type MermaidToPdfInlineSuccessOutput,
   type PdfRenderError,
 } from "../schemas/mermaid-to-pdf.js";
+import type { CacheWarning } from "../schemas/mermaid-to-svg.js";
 import { closeBrowser, launchBrowser, render } from "../renderer/index.js";
 import type { ToolConfig } from "./types.js";
+import type { CacheManager } from "../cache/index.js";
 
 /** Maximum allowed input size in bytes (1MB) */
 const MAX_INPUT_SIZE = 1_048_576;
@@ -408,3 +412,170 @@ export const mermaidToPdfTool: ToolConfig<
   inputSchema: MermaidToPdfInputSchema,
   handler: mermaidToPdf,
 };
+
+// ============================================
+// Cached version (T021)
+// ============================================
+
+/**
+ * Create a cached error response.
+ */
+function createCachedErrorResponse(
+  requestId: string,
+  error: PdfRenderError,
+): MermaidToPdfCachedOutput {
+  return {
+    ok: false,
+    request_id: requestId,
+    warnings: [],
+    errors: [error],
+  };
+}
+
+/**
+ * MCP tool handler: mermaid_to_pdf with caching support.
+ * Converts Mermaid diagram source to PDF format, storing result in cache.
+ *
+ * @param input - Tool input parameters
+ * @param sessionId - Session identifier for cache isolation
+ * @param cacheManager - CacheManager instance
+ * @returns Cached output with artifact reference
+ */
+export async function mermaidToPdfCached(
+  input: MermaidToPdfInput,
+  sessionId: string,
+  cacheManager: CacheManager,
+): Promise<MermaidToPdfCachedOutput> {
+  const requestId = randomUUID();
+
+  // 1. Validate input code
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createCachedErrorResponse(requestId, inputError);
+  }
+
+  // 2. Validate timeout_ms
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createCachedErrorResponse(requestId, timeoutError);
+  }
+
+  // 3. Parse config_json
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createCachedErrorResponse(requestId, configError);
+  }
+
+  // 4. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createCachedErrorResponse(requestId, renderResult.error);
+  }
+
+  // 5. Write to cache (PDF is already base64, decode to binary)
+  const pdfBuffer = Buffer.from(renderResult.pdf, "base64");
+  const artifactRef = await cacheManager.writeArtifact(
+    sessionId,
+    pdfBuffer,
+    "application/pdf",
+  );
+
+  // 6. Return cached success response
+  return {
+    ok: true,
+    request_id: requestId,
+    artifact: artifactRef,
+    mode: "cached",
+    warnings: [],
+    errors: [],
+  };
+}
+
+// ============================================
+// With Fallback version (T056)
+// ============================================
+
+/**
+ * MCP tool handler: mermaid_to_pdf with graceful degradation.
+ * Falls back to inline mode when cache is unavailable.
+ *
+ * @param input - Tool input parameters
+ * @param sessionId - Session identifier (optional - undefined triggers fallback)
+ * @param cacheManager - CacheManager instance
+ * @returns Cached or inline output depending on cache availability
+ */
+export async function mermaidToPdfWithFallback(
+  input: MermaidToPdfInput,
+  sessionId: string | undefined,
+  cacheManager: CacheManager,
+): Promise<MermaidToPdfCachedOutput> {
+  const requestId = randomUUID();
+
+  // 1. Check if caching is available
+  const canCache = sessionId !== undefined && cacheManager.isAvailable();
+
+  // If caching is available, use cached path
+  if (canCache) {
+    return mermaidToPdfCached(input, sessionId, cacheManager);
+  }
+
+  // 2. Fallback to inline mode
+  // Validate input first
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createCachedErrorResponse(requestId, inputError);
+  }
+
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createCachedErrorResponse(requestId, timeoutError);
+  }
+
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createCachedErrorResponse(requestId, configError);
+  }
+
+  // 3. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createCachedErrorResponse(requestId, renderResult.error);
+  }
+
+  // 4. Build CACHE_UNAVAILABLE warning
+  const warning: CacheWarning = {
+    code: "CACHE_UNAVAILABLE",
+    message:
+      sessionId === undefined
+        ? "No session context available - returning inline content"
+        : "Cache is disabled - returning inline content",
+  };
+
+  // 5. Return inline success response
+  const inlineResponse: MermaidToPdfInlineSuccessOutput = {
+    ok: true,
+    request_id: requestId,
+    pdf_base64: renderResult.pdf,
+    mode: "inline",
+    warnings: [warning],
+    errors: [],
+  };
+
+  return inlineResponse;
+}

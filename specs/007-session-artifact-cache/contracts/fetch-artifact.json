@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "fetch_artifact MCP Tool Contract",
+  "description": "Retrieve a previously rendered artifact from the session cache",
+
+  "tool": {
+    "name": "fetch_artifact",
+    "description": "Retrieve a previously rendered artifact by its ID. Returns the full content of the artifact with optional encoding."
+  },
+
+  "input": {
+    "type": "object",
+    "required": ["artifact_id"],
+    "properties": {
+      "artifact_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "The unique identifier of the artifact to retrieve"
+      },
+      "encoding": {
+        "type": "string",
+        "enum": ["base64", "utf8"],
+        "default": "base64",
+        "description": "Output encoding. Use 'utf8' for text-based formats like SVG, 'base64' for binary formats like PDF."
+      }
+    },
+    "additionalProperties": false
+  },
+
+  "output": {
+    "oneOf": [
+      {
+        "title": "Success Response",
+        "type": "object",
+        "required": ["ok", "content", "content_type", "size_bytes", "encoding"],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "content": {
+            "type": "string",
+            "description": "The artifact content, encoded according to the 'encoding' parameter"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": ["image/svg+xml", "application/pdf"],
+            "description": "MIME type of the artifact"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Size of the artifact in bytes (before encoding)"
+          },
+          "encoding": {
+            "type": "string",
+            "enum": ["base64", "utf8"],
+            "description": "The encoding used for the content field"
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "title": "Error Response",
+        "type": "object",
+        "required": ["ok", "errors"],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "errors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["code", "message"],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "ARTIFACT_NOT_FOUND",
+                    "SESSION_MISMATCH",
+                    "CACHE_UNAVAILABLE",
+                    "INVALID_ARTIFACT_ID"
+                  ],
+                  "description": "Stable error code for programmatic handling"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Human-readable error description"
+                },
+                "details": {
+                  "type": "object",
+                  "description": "Optional additional context about the error",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  },
+
+  "examples": {
+    "success_svg_base64": {
+      "description": "Successfully retrieve an SVG artifact with base64 encoding",
+      "input": {
+        "artifact_id": "550e8400-e29b-41d4-a716-446655440000",
+        "encoding": "base64"
+      },
+      "output": {
+        "ok": true,
+        "content": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==",
+        "content_type": "image/svg+xml",
+        "size_bytes": 42,
+        "encoding": "base64"
+      }
+    },
+    "success_svg_utf8": {
+      "description": "Successfully retrieve an SVG artifact with UTF-8 encoding",
+      "input": {
+        "artifact_id": "550e8400-e29b-41d4-a716-446655440000",
+        "encoding": "utf8"
+      },
+      "output": {
+        "ok": true,
+        "content": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
+        "content_type": "image/svg+xml",
+        "size_bytes": 42,
+        "encoding": "utf8"
+      }
+    },
+    "error_not_found": {
+      "description": "Artifact does not exist",
+      "input": {
+        "artifact_id": "00000000-0000-0000-0000-000000000000"
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "ARTIFACT_NOT_FOUND",
+            "message": "Artifact '00000000-0000-0000-0000-000000000000' not found"
+          }
+        ]
+      }
+    },
+    "error_session_mismatch": {
+      "description": "Artifact belongs to a different session",
+      "input": {
+        "artifact_id": "550e8400-e29b-41d4-a716-446655440000"
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "SESSION_MISMATCH",
+            "message": "Artifact belongs to a different session",
+            "details": {
+              "artifact_session": "abc123",
+              "request_session": "def456"
+            }
+          }
+        ]
+      }
+    },
+    "error_invalid_id": {
+      "description": "Artifact ID is not a valid UUID",
+      "input": {
+        "artifact_id": "not-a-uuid"
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "INVALID_ARTIFACT_ID",
+            "message": "artifact_id must be a valid UUID"
+          }
+        ]
+      }
+    }
+  }
+}
