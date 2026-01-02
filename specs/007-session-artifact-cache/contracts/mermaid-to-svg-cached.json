@@ -8,7 +8,14 @@
       {
         "title": "Success with Artifact Reference (cached mode)",
         "type": "object",
-        "required": ["ok", "request_id", "artifact", "mode", "warnings", "errors"],
+        "required": [
+          "ok",
+          "request_id",
+          "artifact",
+          "mode",
+          "warnings",
+          "errors"
+        ],
         "properties": {
           "ok": { "type": "boolean", "const": true },
           "request_id": { "type": "string", "format": "uuid" },

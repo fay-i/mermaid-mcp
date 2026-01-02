@@ -8,10 +8,14 @@ import {
   MermaidToSvgInputSchema,
   type MermaidToSvgInput,
   type MermaidToSvgOutput,
+  type MermaidToSvgCachedOutput,
+  type MermaidToSvgInlineSuccessOutput,
   type RenderError,
+  type CacheWarning,
 } from "../schemas/mermaid-to-svg.js";
 import { closeBrowser, launchBrowser, render } from "../renderer/index.js";
 import type { ToolConfig } from "./types.js";
+import type { CacheManager } from "../cache/index.js";
 
 /** Maximum allowed input size in bytes (1MB) */
 const MAX_INPUT_SIZE = 1_048_576;
@@ -281,3 +285,170 @@ export const mermaidToSvgTool: ToolConfig<
   inputSchema: MermaidToSvgInputSchema,
   handler: mermaidToSvg,
 };
+
+// ============================================
+// Cached version (T019)
+// ============================================
+
+/**
+ * Create a cached error response.
+ */
+function createCachedErrorResponse(
+  requestId: string,
+  error: RenderError,
+): MermaidToSvgCachedOutput {
+  return {
+    ok: false,
+    request_id: requestId,
+    warnings: [],
+    errors: [error],
+  };
+}
+
+/**
+ * MCP tool handler: mermaid_to_svg with caching support.
+ * Converts Mermaid diagram source to SVG format, storing result in cache.
+ *
+ * @param input - Tool input parameters
+ * @param sessionId - Session identifier for cache isolation
+ * @param cacheManager - CacheManager instance
+ * @returns Cached output with artifact reference
+ */
+export async function mermaidToSvgCached(
+  input: MermaidToSvgInput,
+  sessionId: string,
+  cacheManager: CacheManager,
+): Promise<MermaidToSvgCachedOutput> {
+  const requestId = randomUUID();
+
+  // 1. Validate input code
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createCachedErrorResponse(requestId, inputError);
+  }
+
+  // 2. Validate timeout_ms
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createCachedErrorResponse(requestId, timeoutError);
+  }
+
+  // 3. Parse config_json
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createCachedErrorResponse(requestId, configError);
+  }
+
+  // 4. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createCachedErrorResponse(requestId, renderResult.error);
+  }
+
+  // 5. Write to cache
+  const svgBuffer = Buffer.from(renderResult.svg, "utf-8");
+  const artifactRef = await cacheManager.writeArtifact(
+    sessionId,
+    svgBuffer,
+    "image/svg+xml",
+  );
+
+  // 6. Return cached success response
+  return {
+    ok: true,
+    request_id: requestId,
+    artifact: artifactRef,
+    mode: "cached",
+    warnings: [],
+    errors: [],
+  };
+}
+
+// ============================================
+// With Fallback version (T055, T056, T057)
+// ============================================
+
+/**
+ * MCP tool handler: mermaid_to_svg with graceful degradation.
+ * Falls back to inline mode when cache is unavailable.
+ *
+ * @param input - Tool input parameters
+ * @param sessionId - Session identifier (optional - undefined triggers fallback)
+ * @param cacheManager - CacheManager instance
+ * @returns Cached or inline output depending on cache availability
+ */
+export async function mermaidToSvgWithFallback(
+  input: MermaidToSvgInput,
+  sessionId: string | undefined,
+  cacheManager: CacheManager,
+): Promise<MermaidToSvgCachedOutput> {
+  const requestId = randomUUID();
+
+  // 1. Check if caching is available
+  const canCache = sessionId !== undefined && cacheManager.isAvailable();
+
+  // If caching is available, use cached path
+  if (canCache) {
+    return mermaidToSvgCached(input, sessionId, cacheManager);
+  }
+
+  // 2. Fallback to inline mode
+  // Validate input first
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createCachedErrorResponse(requestId, inputError);
+  }
+
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createCachedErrorResponse(requestId, timeoutError);
+  }
+
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createCachedErrorResponse(requestId, configError);
+  }
+
+  // 3. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createCachedErrorResponse(requestId, renderResult.error);
+  }
+
+  // 4. Build CACHE_UNAVAILABLE warning (T057)
+  const warning: CacheWarning = {
+    code: "CACHE_UNAVAILABLE",
+    message:
+      sessionId === undefined
+        ? "No session context available - returning inline content"
+        : "Cache is disabled - returning inline content",
+  };
+
+  // 5. Return inline success response
+  const inlineResponse: MermaidToSvgInlineSuccessOutput = {
+    ok: true,
+    request_id: requestId,
+    svg: renderResult.svg,
+    mode: "inline",
+    warnings: [warning],
+    errors: [],
+  };
+
+  return inlineResponse;
+}

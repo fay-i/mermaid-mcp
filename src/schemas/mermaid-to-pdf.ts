@@ -3,9 +3,11 @@ import {
   WarningSchema,
   RenderErrorSchema,
   ErrorCodeSchema,
+  CacheWarningSchema,
   type Warning,
   type RenderError,
 } from "./mermaid-to-svg.js";
+import { ArtifactRefSchema } from "./artifact-ref.js";
 
 // Re-export shared types
 export { WarningSchema, RenderErrorSchema, type Warning, type RenderError };
@@ -106,3 +108,62 @@ export const MermaidToPdfOutputSchema = z.discriminatedUnion("ok", [
 ]);
 
 export type MermaidToPdfOutput = z.infer<typeof MermaidToPdfOutputSchema>;
+
+// ============================================
+// Cached output schemas (T020)
+// Per contracts/mermaid-to-pdf-cached.json
+// ============================================
+
+/**
+ * Success response with artifact reference (cached mode).
+ */
+export const MermaidToPdfCachedSuccessOutputSchema = z.object({
+  ok: z.literal(true),
+  request_id: z.string().uuid(),
+  artifact: ArtifactRefSchema,
+  mode: z.literal("cached"),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(PdfRenderErrorSchema).max(0),
+});
+
+export type MermaidToPdfCachedSuccessOutput = z.infer<
+  typeof MermaidToPdfCachedSuccessOutputSchema
+>;
+
+/**
+ * Success response with inline content (fallback mode).
+ */
+export const MermaidToPdfInlineSuccessOutputSchema = z.object({
+  ok: z.literal(true),
+  request_id: z.string().uuid(),
+  pdf_base64: z.string(),
+  mode: z.literal("inline"),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(PdfRenderErrorSchema).max(0),
+});
+
+export type MermaidToPdfInlineSuccessOutput = z.infer<
+  typeof MermaidToPdfInlineSuccessOutputSchema
+>;
+
+/**
+ * Error response (same structure for both modes).
+ */
+export const MermaidToPdfCachedErrorOutputSchema = z.object({
+  ok: z.literal(false),
+  request_id: z.string().uuid(),
+  warnings: z.array(CacheWarningSchema),
+  errors: z.array(PdfRenderErrorSchema).min(1),
+});
+
+export type MermaidToPdfCachedErrorOutput = z.infer<
+  typeof MermaidToPdfCachedErrorOutputSchema
+>;
+
+/**
+ * Combined cached output type (success cached | success inline | error).
+ */
+export type MermaidToPdfCachedOutput =
+  | MermaidToPdfCachedSuccessOutput
+  | MermaidToPdfInlineSuccessOutput
+  | MermaidToPdfCachedErrorOutput;
