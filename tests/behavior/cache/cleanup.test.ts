@@ -4,11 +4,11 @@
  * T037, T038, T039: Cleanup on timeout, directory deletion, shutdown cleanup.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { mkdir, rm, readdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { CacheManager } from "../../../src/cache/index.js";
 import { fileExists } from "../../../src/cache/storage.js";
 import type { CacheConfig } from "../../../src/cache/types.js";

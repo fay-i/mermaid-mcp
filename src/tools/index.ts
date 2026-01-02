@@ -1,6 +1,6 @@
 import { healthcheckTool } from "./healthcheck.js";
-import { mermaidToSvgTool } from "./mermaid-to-svg.js";
-import { mermaidToPdfTool } from "./mermaid-to-pdf.js";
+import { mermaidToSvgTool, mermaidToSvgS3 } from "./mermaid-to-svg.js";
+import { mermaidToPdfTool, mermaidToPdfS3 } from "./mermaid-to-pdf.js";
 import { fetchArtifactTool } from "./fetch-artifact.js";
 
 // Use a readonly tuple to preserve the specific types of each tool
@@ -16,4 +16,7 @@ export {
   mermaidToSvgTool,
   mermaidToPdfTool,
   fetchArtifactTool,
+  // S3 storage handlers
+  mermaidToSvgS3,
+  mermaidToPdfS3,
 };

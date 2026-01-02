@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { mkdir, rm, stat, readFile } from "node:fs/promises";
-import { CacheManager, loadCacheConfig } from "../../../src/cache/index.js";
+import { CacheManager } from "../../../src/cache/index.js";
 import type { CacheConfig } from "../../../src/cache/types.js";
 import { mermaidToSvgCached } from "../../../src/tools/mermaid-to-svg.js";
 

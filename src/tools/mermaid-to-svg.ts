@@ -452,3 +452,111 @@ export async function mermaidToSvgWithFallback(
 
   return inlineResponse;
 }
+
+// ============================================
+// S3 Storage version
+// ============================================
+
+import type { S3Storage } from "../storage/index.js";
+import type {
+  ArtifactOutput,
+  RenderError as ArtifactRenderError,
+} from "../schemas/artifact-output.js";
+
+/**
+ * Create an S3 error response.
+ */
+function createS3ErrorResponse(
+  requestId: string,
+  error: ArtifactRenderError,
+): ArtifactOutput {
+  return {
+    ok: false,
+    request_id: requestId,
+    warnings: [],
+    errors: [error],
+  };
+}
+
+/**
+ * MCP tool handler: mermaid_to_svg with S3 storage.
+ * Converts Mermaid diagram source to SVG format, stores in S3,
+ * and returns a presigned download URL.
+ *
+ * @param input - Tool input parameters
+ * @param storage - S3Storage instance
+ * @returns Output with presigned download URL
+ */
+export async function mermaidToSvgS3(
+  input: MermaidToSvgInput,
+  storage: S3Storage,
+): Promise<ArtifactOutput> {
+  const requestId = randomUUID();
+
+  // 1. Validate input code
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createS3ErrorResponse(requestId, inputError as ArtifactRenderError);
+  }
+
+  // 2. Validate timeout_ms
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createS3ErrorResponse(
+      requestId,
+      timeoutError as ArtifactRenderError,
+    );
+  }
+
+  // 3. Parse config_json
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createS3ErrorResponse(requestId, configError as ArtifactRenderError);
+  }
+
+  // 4. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createS3ErrorResponse(
+      requestId,
+      renderResult.error as ArtifactRenderError,
+    );
+  }
+
+  // 5. Store in S3 and get presigned URL
+  try {
+    const svgBuffer = Buffer.from(renderResult.svg, "utf-8");
+    const artifact = await storage.storeArtifact(svgBuffer, "image/svg+xml");
+
+    // Generate curl command with output filename
+    const outputFile = `${artifact.artifact_id}.svg`;
+    const curlCommand = `curl -o ${outputFile} '${artifact.download_url}'`;
+
+    return {
+      ok: true,
+      request_id: requestId,
+      artifact_id: artifact.artifact_id,
+      download_url: artifact.download_url,
+      curl_command: curlCommand,
+      s3: artifact.s3,
+      expires_in_seconds: artifact.expires_in_seconds,
+      content_type: "image/svg+xml",
+      size_bytes: artifact.size_bytes,
+      warnings: [],
+      errors: [],
+    };
+  } catch (error) {
+    return createS3ErrorResponse(requestId, {
+      code: "STORAGE_FAILED",
+      message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
