@@ -6,9 +6,9 @@ metadata:
   labels:
     app.kubernetes.io/name: mermaid-mcp
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-    - port: 8000
+    - port: 8100
       targetPort: 8000
       protocol: TCP
       name: sse
