@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mermaid-to-pdf.json",
+  "title": "MermaidToPdf MCP Tool Contract",
+  "description": "JSON Schema contract for the mermaid_to_pdf MCP tool",
+
+  "definitions": {
+    "MermaidToPdfInput": {
+      "type": "object",
+      "required": ["code"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1048576,
+          "description": "Mermaid diagram source code (1 byte to 1 MB)"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "dark", "forest", "neutral"],
+          "description": "Diagram color theme"
+        },
+        "background": {
+          "type": "string",
+          "description": "Background color (CSS color value or 'transparent')"
+        },
+        "config_json": {
+          "type": "string",
+          "description": "Advanced Mermaid configuration as JSON string"
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000,
+          "default": 30000,
+          "description": "Render timeout in milliseconds (1000-120000)"
+        }
+      }
+    },
+
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_INPUT",
+        "INPUT_TOO_LARGE",
+        "PARSE_ERROR",
+        "UNSUPPORTED_DIAGRAM",
+        "INVALID_CONFIG",
+        "INVALID_TIMEOUT",
+        "RENDER_TIMEOUT",
+        "RENDER_FAILED",
+        "PDF_GENERATION_FAILED"
+      ],
+      "description": "Stable error codes for programmatic handling"
+    },
+
+    "Warning": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Warning identifier"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable warning description"
+        }
+      }
+    },
+
+    "RenderError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error description"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Additional context (e.g., line/column for parse errors)"
+        }
+      }
+    },
+
+    "MermaidToPdfSuccessOutput": {
+      "type": "object",
+      "required": ["ok", "request_id", "pdf", "warnings", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true,
+          "description": "Discriminator for success"
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique request identifier for correlation"
+        },
+        "pdf": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Base64-encoded PDF document"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Warning" },
+          "description": "Non-fatal warnings (may be empty)"
+        },
+        "errors": {
+          "type": "array",
+          "maxItems": 0,
+          "items": { "$ref": "#/definitions/RenderError" },
+          "description": "Empty array for success responses"
+        }
+      }
+    },
+
+    "MermaidToPdfErrorOutput": {
+      "type": "object",
+      "required": ["ok", "request_id", "warnings", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": false,
+          "description": "Discriminator for error"
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique request identifier for correlation"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Warning" },
+          "description": "Non-fatal warnings (may be empty)"
+        },
+        "errors": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/RenderError" },
+          "description": "Array of errors (at least one for error responses)"
+        }
+      }
+    },
+
+    "MermaidToPdfOutput": {
+      "oneOf": [
+        { "$ref": "#/definitions/MermaidToPdfSuccessOutput" },
+        { "$ref": "#/definitions/MermaidToPdfErrorOutput" }
+      ],
+      "description": "Discriminated union: success (ok=true) or error (ok=false)"
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "tool": {
+      "type": "object",
+      "required": ["name", "description", "input", "output"],
+      "properties": {
+        "name": {
+          "const": "mermaid_to_pdf",
+          "description": "MCP tool name"
+        },
+        "description": {
+          "type": "string",
+          "const": "Render Mermaid diagram source code to PDF format. Supports flowcharts, sequence diagrams, class diagrams, and more. Output is base64-encoded PDF with vector graphics preserved."
+        },
+        "input": {
+          "$ref": "#/definitions/MermaidToPdfInput"
+        },
+        "output": {
+          "$ref": "#/definitions/MermaidToPdfOutput"
+        }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "description": "Simple flowchart",
+      "input": {
+        "code": "graph TD\n  A[Start] --> B[End]"
+      },
+      "expectedOutput": {
+        "ok": true,
+        "request_id": "550e8400-e29b-41d4-a716-446655440000",
+        "pdf": "JVBERi0xLjQK...",
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "description": "With theme option",
+      "input": {
+        "code": "graph TD\n  A --> B",
+        "theme": "dark"
+      },
+      "expectedOutput": {
+        "ok": true,
+        "request_id": "550e8400-e29b-41d4-a716-446655440001",
+        "pdf": "JVBERi0xLjQK...",
+        "warnings": [],
+        "errors": []
+      }
+    },
+    {
+      "description": "Invalid input error",
+      "input": {
+        "code": ""
+      },
+      "expectedOutput": {
+        "ok": false,
+        "request_id": "550e8400-e29b-41d4-a716-446655440002",
+        "warnings": [],
+        "errors": [
+          {
+            "code": "INVALID_INPUT",
+            "message": "Mermaid code cannot be empty or contain only whitespace"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Parse error",
+      "input": {
+        "code": "graph TD\n  A --> --> B"
+      },
+      "expectedOutput": {
+        "ok": false,
+        "request_id": "550e8400-e29b-41d4-a716-446655440003",
+        "warnings": [],
+        "errors": [
+          {
+            "code": "PARSE_ERROR",
+            "message": "Mermaid syntax error: ...",
+            "details": {
+              "line": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "description": "PDF generation failure",
+      "input": {
+        "code": "graph TD\n  A --> B"
+      },
+      "expectedOutput": {
+        "ok": false,
+        "request_id": "550e8400-e29b-41d4-a716-446655440004",
+        "warnings": [],
+        "errors": [
+          {
+            "code": "PDF_GENERATION_FAILED",
+            "message": "Failed to convert SVG to PDF: ...",
+            "details": {
+              "phase": "pdf_conversion"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
