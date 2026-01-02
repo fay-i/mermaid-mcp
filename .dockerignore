@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output (rebuilt in container)
+dist/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test files
+tests/
+*.test.ts
+vitest.config.ts
+coverage/
+
+# Documentation
+*.md
+!README.md
+docs/
+specs/
+.specify/
+
+# Kubernetes configs (not needed in image)
+k8s/
+
+# Environment and secrets
+.env*
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db
