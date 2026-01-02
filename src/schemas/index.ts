@@ -21,3 +21,18 @@ export {
   type Warning,
   type RenderError,
 } from "./mermaid-to-svg.js";
+
+export {
+  MermaidToPdfInputSchema,
+  MermaidToPdfOutputSchema,
+  MermaidToPdfSuccessOutputSchema,
+  MermaidToPdfErrorOutputSchema,
+  PdfErrorCodeSchema,
+  PdfRenderErrorSchema,
+  type MermaidToPdfInput,
+  type MermaidToPdfOutput,
+  type MermaidToPdfSuccessOutput,
+  type MermaidToPdfErrorOutput,
+  type PdfErrorCode,
+  type PdfRenderError,
+} from "./mermaid-to-pdf.js";

@@ -83,9 +83,77 @@ If a rule is wrong, fix the rule globally. Do not suppress locally.
 ### PR Structure
 
 - Foundational setup → its own PR
-- Each MCP tool → its own PR
+- Each user story → its own PR
+- Polish/cross-cutting concerns → its own PR
 - PRs MUST be atomic (one concern per PR)
 - PRs MUST document iteration loops briefly
+
+### PR Description Protocol
+
+Every PR description MUST include:
+
+1. **Task References** — List all task IDs (e.g., T001, T002) completed in this PR
+2. **GitHub Issue Links** — Reference issues with `Closes #XX` or `Relates to #XX`
+3. **User Story Context** — Which user story this PR completes (if applicable)
+4. **Test Evidence** — Confirmation that tests were written first and failed before implementation
+
+Example PR description:
+```markdown
+## Summary
+Implements User Story 1: Generate PDF from Mermaid Diagram
+
+## Tasks Completed
+- T007: Contract test for input validation
+- T008: Contract test for success output structure
+- T013-T020: Core implementation
+
+Closes #20, #21, #26, #27, #28, #29, #30, #31, #32, #33
+
+## Test Evidence
+All tests written first and verified failing before implementation per TDD protocol.
+```
+
+### User Story PR Workflow — MANDATORY
+
+**Each user story MUST be a separate PR with a remediation checkpoint:**
+
+1. **Complete User Story N** — All tests + implementation for that story
+2. **Create PR** — Include task references and issue links
+3. **Push and Wait** — Wait for CI + review feedback
+4. **STOP** — Do NOT proceed to next user story
+5. **Remediate** — Address all feedback, re-run quality gate
+6. **Merge** — Only after PR approved and CI green
+7. **THEN** — Proceed to User Story N+1
+
+```text
+┌─────────────────┐
+│  User Story 1   │
+│  (Setup + US1)  │
+└────────┬────────┘
+         │ PR → Review → Remediate → Merge
+         ▼
+┌─────────────────┐
+│  User Story 2   │
+└────────┬────────┘
+         │ PR → Review → Remediate → Merge
+         ▼
+┌─────────────────┐
+│  User Story 3   │
+└────────┬────────┘
+         │ PR → Review → Remediate → Merge
+         ▼
+┌─────────────────┐
+│     Polish      │
+└─────────────────┘
+```
+
+**Why forced checkpoints?**
+- Prevents accumulating technical debt across stories
+- Ensures each story is independently shippable
+- Catches integration issues early
+- Maintains code quality throughout feature development
+
+**NO EXCEPTIONS:** Do not batch multiple user stories into one PR. Do not start the next user story until the current PR is merged.
 
 ## Commands
 
@@ -187,6 +255,8 @@ NON-NEGOTIABLE principles:
 ## Active Technologies
 - TypeScript 5.x, Node.js 24+, ESM modules + `@modelcontextprotocol/sdk`, `zod` (schema validation) (001-mcp-hello-world)
 - N/A (stateless healthcheck tool) (001-mcp-hello-world)
+- TypeScript 5.x, Node.js 24+ (ESM modules) + `@modelcontextprotocol/sdk`, `zod`, `puppeteer`, `mermaid`, `jspdf`, `svg2pdf.js` (003-mermaid-to-pdf)
+- N/A (stateless tool, base64 output) (003-mermaid-to-pdf)
 
 ## Recent Changes
 - 001-mcp-hello-world: Added TypeScript 5.x, Node.js 24+, ESM modules + `@modelcontextprotocol/sdk`, `zod` (schema validation)
