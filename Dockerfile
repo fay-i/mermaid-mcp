@@ -71,4 +71,4 @@ USER mcp
 EXPOSE 8000
 
 # Default: run via supergateway to expose stdio as SSE
-CMD ["supergateway", "--stdio", "node dist/index.js", "--port", "8000"]
+CMD ["supergateway", "--stdio", "node dist/index.js", "--port", "8000", "--healthEndpoint", "/health"]
