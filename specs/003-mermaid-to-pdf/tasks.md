@@ -23,9 +23,9 @@
 
 **Purpose**: Schema and tool structure initialization
 
-- [ ] T001 Create PDF schema file in src/schemas/mermaid-to-pdf.ts with input/output types extending SVG patterns
-- [ ] T002 Create PDF tool skeleton in src/tools/mermaid-to-pdf.ts with ToolConfig structure
-- [ ] T003 Register mermaid_to_pdf tool in src/tools/index.ts
+- [X] T001 Create PDF schema file in src/schemas/mermaid-to-pdf.ts with input/output types extending SVG patterns
+- [X] T002 Create PDF tool skeleton in src/tools/mermaid-to-pdf.ts with ToolConfig structure
+- [X] T003 Register mermaid_to_pdf tool in src/tools/index.ts
 
 > **Note on FR-010 (Request ID)**: Request ID generation is inherited from the existing SVG renderer pipeline. No dedicated task required as T017 (wire complete pipeline) reuses this infrastructure.
 
@@ -37,9 +37,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create test directory structure at tests/behavior/mermaid-to-pdf/
-- [ ] T005 Implement PDF_GENERATION_FAILED error code in schema (extends existing ErrorCodeSchema)
-- [ ] T006 Implement timeout budget splitting utility (80% SVG / 20% PDF per research.md)
+- [X] T004 Create test directory structure at tests/behavior/mermaid-to-pdf/
+- [X] T005 Implement PDF_GENERATION_FAILED error code in schema (extends existing ErrorCodeSchema)
+- [X] T006 Implement timeout budget splitting utility (80% SVG / 20% PDF per research.md)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -55,23 +55,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (Constitution Principle II)**
 
-- [ ] T007 [P] [US1] Contract test for input validation in tests/behavior/mermaid-to-pdf/contract.test.ts
-- [ ] T008 [P] [US1] Contract test for success output structure in tests/behavior/mermaid-to-pdf/contract.test.ts
-- [ ] T009 [P] [US1] PDF validation test (magic bytes, vector operators) in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
-- [ ] T010 [P] [US1] Integration test for flowchart to PDF in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
-- [ ] T011 [P] [US1] Integration test for sequence diagram to PDF in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
-- [ ] T012 [P] [US1] Theme support test (dark/forest/neutral) in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
+- [X] T007 [P] [US1] Contract test for input validation in tests/behavior/mermaid-to-pdf/contract.test.ts
+- [X] T008 [P] [US1] Contract test for success output structure in tests/behavior/mermaid-to-pdf/contract.test.ts
+- [X] T009 [P] [US1] PDF validation test (magic bytes, vector operators) in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
+- [X] T010 [P] [US1] Integration test for flowchart to PDF in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
+- [X] T011 [P] [US1] Integration test for sequence diagram to PDF in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
+- [X] T012 [P] [US1] Theme support test (dark/forest/neutral) in tests/behavior/mermaid-to-pdf/pdf-validation.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement SVG dimension extraction utility in src/tools/mermaid-to-pdf.ts
-- [ ] T014 [US1] Implement HTML wrapper for inline SVG embedding in src/tools/mermaid-to-pdf.ts
-- [ ] T015 [US1] Implement page.pdf() call with dimension matching in src/tools/mermaid-to-pdf.ts
-- [ ] T016 [US1] Implement base64 encoding for PDF output in src/tools/mermaid-to-pdf.ts
-- [ ] T017 [US1] Wire complete pipeline: validate → render SVG → embed HTML → generate PDF → encode in src/tools/mermaid-to-pdf.ts
-- [ ] T018 [US1] Add theme parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
-- [ ] T019 [US1] Add background parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
-- [ ] T020 [US1] Add config_json parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
+- [X] T013 [US1] Implement SVG dimension extraction utility in src/tools/mermaid-to-pdf.ts
+- [X] T014 [US1] Implement HTML wrapper for inline SVG embedding in src/tools/mermaid-to-pdf.ts
+- [X] T015 [US1] Implement page.pdf() call with dimension matching in src/tools/mermaid-to-pdf.ts
+- [X] T016 [US1] Implement base64 encoding for PDF output in src/tools/mermaid-to-pdf.ts
+- [X] T017 [US1] Wire complete pipeline: validate → render SVG → embed HTML → generate PDF → encode in src/tools/mermaid-to-pdf.ts
+- [X] T018 [US1] Add theme parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
+- [X] T019 [US1] Add background parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
+- [X] T020 [US1] Add config_json parameter passthrough to SVG renderer in src/tools/mermaid-to-pdf.ts
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -85,21 +85,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Error test for empty code input in tests/behavior/mermaid-to-pdf/error-handling.test.ts
-- [ ] T022 [P] [US2] Error test for whitespace-only code in tests/behavior/mermaid-to-pdf/error-handling.test.ts
-- [ ] T023 [P] [US2] Error test for oversized input (>1MB) in tests/behavior/mermaid-to-pdf/error-handling.test.ts
-- [ ] T024 [P] [US2] Error test for invalid Mermaid syntax in tests/behavior/mermaid-to-pdf/error-handling.test.ts
-- [ ] T025 [P] [US2] Error test for malformed config_json in tests/behavior/mermaid-to-pdf/error-handling.test.ts
-- [ ] T026 [P] [US2] Error test for invalid timeout_ms range in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T021 [P] [US2] Error test for empty code input in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T022 [P] [US2] Error test for whitespace-only code in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T023 [P] [US2] Error test for oversized input (>1MB) in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T024 [P] [US2] Error test for invalid Mermaid syntax in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T025 [P] [US2] Error test for malformed config_json in tests/behavior/mermaid-to-pdf/error-handling.test.ts
+- [X] T026 [P] [US2] Error test for invalid timeout_ms range in tests/behavior/mermaid-to-pdf/error-handling.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Implement input validation (empty/whitespace check) in src/tools/mermaid-to-pdf.ts
-- [ ] T028 [US2] Implement input size validation (1MB limit) in src/tools/mermaid-to-pdf.ts
-- [ ] T029 [US2] Implement config_json validation (valid JSON object) in src/tools/mermaid-to-pdf.ts
-- [ ] T030 [US2] Implement timeout_ms validation (1000-120000 range) in src/tools/mermaid-to-pdf.ts
-- [ ] T031 [US2] Map SVG renderer errors to appropriate error codes in src/tools/mermaid-to-pdf.ts
-- [ ] T032 [US2] Implement PDF_GENERATION_FAILED error mapping in src/tools/mermaid-to-pdf.ts
+- [X] T027 [US2] Implement input validation (empty/whitespace check) in src/tools/mermaid-to-pdf.ts
+- [X] T028 [US2] Implement input size validation (1MB limit) in src/tools/mermaid-to-pdf.ts
+- [X] T029 [US2] Implement config_json validation (valid JSON object) in src/tools/mermaid-to-pdf.ts
+- [X] T030 [US2] Implement timeout_ms validation (1000-120000 range) in src/tools/mermaid-to-pdf.ts
+- [X] T031 [US2] Map SVG renderer errors to appropriate error codes in src/tools/mermaid-to-pdf.ts
+- [X] T032 [US2] Implement PDF_GENERATION_FAILED error mapping in src/tools/mermaid-to-pdf.ts
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -113,16 +113,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T033 [P] [US3] Timeout test with short timeout value in tests/behavior/mermaid-to-pdf/timeout.test.ts
-- [ ] T034 [P] [US3] Resource cleanup test after timeout in tests/behavior/mermaid-to-pdf/timeout.test.ts
-- [ ] T035 [P] [US3] Timeout budget split verification test in tests/behavior/mermaid-to-pdf/timeout.test.ts
+- [X] T033 [P] [US3] Timeout test with short timeout value in tests/behavior/mermaid-to-pdf/timeout.test.ts
+- [X] T034 [P] [US3] Resource cleanup test after timeout in tests/behavior/mermaid-to-pdf/timeout.test.ts
+- [X] T035 [P] [US3] Timeout budget split verification test in tests/behavior/mermaid-to-pdf/timeout.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Implement timeout budget splitting (80% SVG / 20% PDF) in src/tools/mermaid-to-pdf.ts
-- [ ] T037 [US3] Implement PDF generation timeout wrapper with AbortController in src/tools/mermaid-to-pdf.ts
-- [ ] T038 [US3] Implement resource cleanup on timeout (page.close, browser cleanup) in src/tools/mermaid-to-pdf.ts
-- [ ] T039 [US3] Implement RENDER_TIMEOUT error response for PDF phase in src/tools/mermaid-to-pdf.ts
+- [X] T036 [US3] Implement timeout budget splitting (80% SVG / 20% PDF) in src/tools/mermaid-to-pdf.ts
+- [X] T037 [US3] Implement PDF generation timeout wrapper with AbortController in src/tools/mermaid-to-pdf.ts
+- [X] T038 [US3] Implement resource cleanup on timeout (page.close, browser cleanup) in src/tools/mermaid-to-pdf.ts
+- [X] T039 [US3] Implement RENDER_TIMEOUT error response for PDF phase in src/tools/mermaid-to-pdf.ts
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -132,10 +132,10 @@
 
 **Purpose**: Final validation and integration testing
 
-- [ ] T040 [P] Add mermaid_to_pdf to MCP Inspector integration test script in scripts/integration-test.sh
-- [ ] T041 [P] Validate quickstart.md examples work with implemented tool
-- [ ] T042 Run full quality gate: npm run quality
-- [ ] T043 Verify contract.json schema matches implementation
+- [X] T040 [P] Add mermaid_to_pdf to MCP Inspector integration test script in scripts/integration-test.sh
+- [X] T041 [P] Validate quickstart.md examples work with implemented tool
+- [X] T042 Run full quality gate: npm run quality
+- [X] T043 Verify contract.json schema matches implementation
 
 ---
 

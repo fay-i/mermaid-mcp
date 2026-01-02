@@ -260,6 +260,66 @@ assert_contains "$output" '<svg' "journey diagram renders successfully"
 
 echo ""
 
+# ----------------------------------------------------------------------------
+# Test: tools/list - Server exposes mermaid_to_pdf tool
+# ----------------------------------------------------------------------------
+log_info "Test: tools/list - Server exposes mermaid_to_pdf tool"
+
+output=$(run_mcp_cli "tools/list")
+assert_contains "$output" '"name": "mermaid_to_pdf"' "mermaid_to_pdf tool is listed"
+assert_contains "$output" 'Render Mermaid diagram source code to PDF' "mermaid_to_pdf has description"
+assert_contains "$output" 'base64-encoded PDF' "mermaid_to_pdf describes base64 output"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_pdf - Basic flowchart rendering
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_pdf - Basic flowchart rendering"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=graph TD; A-->B;")
+assert_contains "$output" 'ok\\": true' "returns ok=true"
+assert_contains "$output" 'request_id\\":' "returns request_id"
+assert_contains "$output" 'pdf\\":' "returns pdf field"
+# PDF magic bytes in base64: %PDF- = JVBERi (first 6 chars of base64-encoded "%PDF-")
+assert_contains "$output" 'JVBERi' "returns base64-encoded PDF content"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_pdf - Invalid syntax returns error
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_pdf - Invalid syntax returns error"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=invalid mermaid syntax @#$%")
+assert_contains "$output" 'ok\\": false' "returns ok=false for invalid syntax"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_pdf - Theme parameter
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_pdf - Theme parameter"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=graph TD; A-->B;" --tool-arg "theme=dark")
+assert_contains "$output" 'ok\\": true' "renders with dark theme"
+assert_contains "$output" 'JVBERi' "returns PDF content with theme"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: mermaid_to_pdf - Sequence diagram rendering
+# ----------------------------------------------------------------------------
+log_info "Test: mermaid_to_pdf - Sequence diagram rendering"
+
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=sequenceDiagram
+    Alice->>Bob: Hello
+    Bob-->>Alice: Hi")
+assert_contains "$output" 'ok\\": true' "sequence diagram renders to PDF"
+assert_contains "$output" 'JVBERi' "returns PDF content for sequence diagram"
+
+echo ""
+
 # ============================================================================
 # Summary
 # ============================================================================
