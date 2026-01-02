@@ -128,6 +128,8 @@
 
 **Checkpoint**: All user stories should now be independently functional
 
+**PR Verification**: US3 timeout protection verified in dedicated PR per Principle VII.
+
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
