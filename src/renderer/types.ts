@@ -16,6 +16,10 @@ export interface RenderOptions {
   config?: Record<string, unknown>;
   /** Render timeout in milliseconds */
   timeoutMs: number;
+  /** Apply drop shadow to nodes and clusters */
+  dropShadow?: boolean;
+  /** Google Font to load (e.g., "Source Code Pro") */
+  googleFont?: string;
 }
 
 /**

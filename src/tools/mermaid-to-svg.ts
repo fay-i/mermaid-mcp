@@ -177,6 +177,8 @@ async function renderWithTimeout(
   theme?: "default" | "dark" | "forest" | "neutral",
   background?: string,
   config?: Record<string, unknown>,
+  dropShadow?: boolean,
+  googleFont?: string,
 ): Promise<{ svg: string } | { error: RenderError }> {
   const browser = await launchBrowser();
 
@@ -196,6 +198,8 @@ async function renderWithTimeout(
         background,
         config,
         timeoutMs,
+        dropShadow,
+        googleFont,
       }),
       timeoutPromise,
     ]);
@@ -255,6 +259,8 @@ export async function mermaidToSvg(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -347,6 +353,8 @@ export async function mermaidToSvgCached(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -425,6 +433,8 @@ export async function mermaidToSvgWithFallback(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -533,6 +543,8 @@ export async function mermaidToSvgS3(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
