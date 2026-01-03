@@ -25,6 +25,10 @@ export const MermaidToSvgInputSchema = z.object({
   config_json: z.string().optional(),
   /** Render timeout in milliseconds (1000-120000) */
   timeout_ms: z.number().int().min(1000).max(120000).optional(),
+  /** Apply drop shadow to nodes and clusters (default: true) */
+  drop_shadow: z.boolean().default(true),
+  /** Google Font to load (default: "Source Code Pro") */
+  google_font: z.string().default("Source Code Pro"),
 });
 
 export type MermaidToSvgInput = z.infer<typeof MermaidToSvgInputSchema>;

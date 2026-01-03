@@ -255,6 +255,8 @@ async function renderWithTimeout(
   theme?: "default" | "dark" | "forest" | "neutral",
   background?: string,
   config?: Record<string, unknown>,
+  dropShadow?: boolean,
+  googleFont?: string,
 ): Promise<{ pdf: string } | { error: PdfRenderError }> {
   const { svgTimeoutMs, pdfTimeoutMs } = splitTimeoutBudget(timeoutMs);
   const browser = await launchBrowser();
@@ -276,6 +278,8 @@ async function renderWithTimeout(
           background,
           config,
           timeoutMs: svgTimeoutMs,
+          dropShadow,
+          googleFont,
         }),
         svgTimeoutPromise,
       ]);
@@ -382,6 +386,8 @@ export async function mermaidToPdf(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -474,6 +480,8 @@ export async function mermaidToPdfCached(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -552,6 +560,8 @@ export async function mermaidToPdfWithFallback(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
@@ -660,6 +670,8 @@ export async function mermaidToPdfS3(
     input.theme,
     input.background,
     config,
+    input.drop_shadow,
+    input.google_font,
   );
 
   if ("error" in renderResult) {
