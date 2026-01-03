@@ -23,6 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on PRs (not pushes to main)
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
 
     steps:
       - name: Checkout repository
