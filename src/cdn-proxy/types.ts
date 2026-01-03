@@ -170,6 +170,9 @@ export interface RequestLogEntry {
   /** Error code (if error) */
   error?: CdnErrorCode;
 
+  /** Error details including stack trace (for debugging) */
+  error_details?: string;
+
   /** ISO 8601 timestamp */
   timestamp: string;
 }

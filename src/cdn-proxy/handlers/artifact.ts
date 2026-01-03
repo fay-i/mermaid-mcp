@@ -72,8 +72,18 @@ export async function handleArtifact(
         try {
           cacheEntry = await inFlightPromise;
           cacheStatus = "hit";
-        } catch {
-          // In-flight request failed, proceed with fresh fetch
+        } catch (error) {
+          // Log coalescing failure for debugging
+          console.error(
+            JSON.stringify({
+              level: "debug",
+              message: "In-flight request failed, retrying with fresh fetch",
+              s3_key: s3Key,
+              request_id: ctx.requestId,
+              error: error instanceof Error ? error.message : String(error),
+              timestamp: new Date().toISOString(),
+            }),
+          );
         }
       }
     }

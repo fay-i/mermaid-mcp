@@ -130,7 +130,12 @@ async function main(): Promise<void> {
           break;
       }
     } catch (error) {
-      console.error("Unhandled error:", error);
+      // Extract error details for structured logging
+      const errorDetails =
+        error instanceof Error
+          ? `${error.name}: ${error.message}\n${error.stack ?? "No stack trace"}`
+          : String(error);
+
       sendError(res, "INTERNAL_ERROR", ctx.path, ctx.requestId);
       logRequest(
         createLogEntry({
@@ -141,6 +146,7 @@ async function main(): Promise<void> {
           duration_ms: getDurationMs(ctx),
           cache: "disabled",
           error: "INTERNAL_ERROR",
+          error_details: errorDetails,
         }),
       );
     }

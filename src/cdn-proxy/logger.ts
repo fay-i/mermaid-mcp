@@ -30,6 +30,7 @@ export function createLogEntry(params: {
   artifact_id?: string;
   size_bytes?: number;
   error?: CdnErrorCode;
+  error_details?: string;
 }): RequestLogEntry {
   return {
     level:
@@ -43,6 +44,7 @@ export function createLogEntry(params: {
     artifact_id: params.artifact_id,
     size_bytes: params.size_bytes,
     error: params.error,
+    error_details: params.error_details,
     timestamp: new Date().toISOString(),
   };
 }
