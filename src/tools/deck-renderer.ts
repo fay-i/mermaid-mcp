@@ -68,9 +68,11 @@ async function renderDiagramToSvg(
     };
   }
 
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(new Error("RENDER_TIMEOUT"));
       }, remainingMs);
     });
@@ -85,8 +87,10 @@ async function renderDiagramToSvg(
     });
 
     const result = await Promise.race([renderPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
     return { svg: result.svg };
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error && error.message === "RENDER_TIMEOUT") {
       return {
         error: {
@@ -142,9 +146,11 @@ async function htmlToPdf(
     };
   }
 
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(new Error("PDF_TIMEOUT"));
       }, remainingMs);
     });
@@ -160,6 +166,7 @@ async function htmlToPdf(
     });
 
     const pdfBytes = await Promise.race([pdfPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
     return { pdfBuffer: Buffer.from(pdfBytes) };
   } catch (error) {
     if (error instanceof Error && error.message === "PDF_TIMEOUT") {
