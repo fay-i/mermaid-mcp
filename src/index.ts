@@ -55,9 +55,11 @@ server.tool(
       ? await mermaidToSvgS3(input, s3Storage)
       : await mermaidToSvg(input);
 
-    // Opportunistic cleanup (don't await, fire-and-forget)
+    // Opportunistic cleanup (don't await, but log errors)
     if (s3Storage) {
-      s3Storage.cleanupOldArtifacts().catch(() => {});
+      s3Storage.cleanupOldArtifacts().catch((error: unknown) => {
+        console.error("[mermaid-mcp] S3 cleanup failed:", error);
+      });
     }
 
     return {
@@ -81,9 +83,11 @@ server.tool(
       ? await mermaidToPdfS3(input, s3Storage)
       : await mermaidToPdf(input);
 
-    // Opportunistic cleanup (don't await, fire-and-forget)
+    // Opportunistic cleanup (don't await, but log errors)
     if (s3Storage) {
-      s3Storage.cleanupOldArtifacts().catch(() => {});
+      s3Storage.cleanupOldArtifacts().catch((error: unknown) => {
+        console.error("[mermaid-mcp] S3 cleanup failed:", error);
+      });
     }
 
     return {

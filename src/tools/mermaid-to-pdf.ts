@@ -588,7 +588,20 @@ import type { S3Storage } from "../storage/index.js";
 import type {
   ArtifactOutput,
   RenderError as ArtifactRenderError,
+  ErrorCode as ArtifactErrorCode,
 } from "../schemas/artifact-output.js";
+
+/**
+ * Map internal PdfRenderError to ArtifactRenderError.
+ * This ensures type safety without unsafe casts.
+ */
+function mapToArtifactError(error: PdfRenderError): ArtifactRenderError {
+  return {
+    code: error.code as ArtifactErrorCode,
+    message: error.message,
+    details: error.details,
+  };
+}
 
 /**
  * Create an S3 error response.
@@ -623,22 +636,19 @@ export async function mermaidToPdfS3(
   // 1. Validate input code
   const inputError = validateInput(input.code);
   if (inputError) {
-    return createS3ErrorResponse(requestId, inputError as ArtifactRenderError);
+    return createS3ErrorResponse(requestId, mapToArtifactError(inputError));
   }
 
   // 2. Validate timeout_ms
   const timeoutError = validateTimeout(input.timeout_ms);
   if (timeoutError) {
-    return createS3ErrorResponse(
-      requestId,
-      timeoutError as ArtifactRenderError,
-    );
+    return createS3ErrorResponse(requestId, mapToArtifactError(timeoutError));
   }
 
   // 3. Parse config_json
   const { config, error: configError } = parseConfigJson(input.config_json);
   if (configError) {
-    return createS3ErrorResponse(requestId, configError as ArtifactRenderError);
+    return createS3ErrorResponse(requestId, mapToArtifactError(configError));
   }
 
   // 4. Render with timeout enforcement
@@ -654,7 +664,7 @@ export async function mermaidToPdfS3(
   if ("error" in renderResult) {
     return createS3ErrorResponse(
       requestId,
-      renderResult.error as ArtifactRenderError,
+      mapToArtifactError(renderResult.error),
     );
   }
 
@@ -664,8 +674,10 @@ export async function mermaidToPdfS3(
     const artifact = await storage.storeArtifact(pdfBuffer, "application/pdf");
 
     // Generate curl command with output filename
+    // Escape single quotes in URL for shell safety (replace ' with '\'' for proper shell escaping)
     const outputFile = `${artifact.artifact_id}.pdf`;
-    const curlCommand = `curl -o ${outputFile} '${artifact.download_url}'`;
+    const escapedUrl = artifact.download_url.replace(/'/g, "'\\''");
+    const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
 
     return {
       ok: true,

@@ -32,10 +32,32 @@ export function loadS3Config(): S3Config {
   }
 
   const region = process.env.MERMAID_S3_REGION ?? "us-east-1";
-  const presignedUrlExpiresIn = Number(
+
+  // Parse and validate presignedUrlExpiresIn
+  const presignedUrlExpiresIn = Number.parseInt(
     process.env.MERMAID_S3_PRESIGNED_EXPIRES_IN ?? "3600",
+    10,
   );
-  const retentionDays = Number(process.env.MERMAID_S3_RETENTION_DAYS ?? "90");
+  if (Number.isNaN(presignedUrlExpiresIn) || presignedUrlExpiresIn <= 0) {
+    throw new Error(
+      "MERMAID_S3_PRESIGNED_EXPIRES_IN must be a positive integer",
+    );
+  }
+  // AWS SDK constraint: 1-604800 seconds (7 days max)
+  if (presignedUrlExpiresIn < 1 || presignedUrlExpiresIn > 604800) {
+    throw new Error(
+      "MERMAID_S3_PRESIGNED_EXPIRES_IN must be between 1 and 604800 seconds (7 days)",
+    );
+  }
+
+  // Parse and validate retentionDays
+  const retentionDays = Number.parseInt(
+    process.env.MERMAID_S3_RETENTION_DAYS ?? "90",
+    10,
+  );
+  if (Number.isNaN(retentionDays) || retentionDays <= 0) {
+    throw new Error("MERMAID_S3_RETENTION_DAYS must be a positive integer");
+  }
 
   return {
     endpoint,
