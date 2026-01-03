@@ -259,6 +259,8 @@ NON-NEGOTIABLE principles:
 - N/A (stateless tool, base64 output) (003-mermaid-to-pdf)
 - TypeScript 5.x, Node.js 24+ (ESM modules) + `@modelcontextprotocol/sdk` ^1.24.0, `zod` ^4.3.4, `puppeteer` ^23.11.1 (007-session-artifact-cache)
 - File system (OS temp directory: `$TMPDIR/mermaid-mcp-cache`) (007-session-artifact-cache)
+- TypeScript 5.x, Node.js 24+ (ESM modules) + `@aws-sdk/client-s3` ^3.962.0 (existing), `lru-cache` ^10.x (new), Node.js built-in `http` module (008-cdn-artifact-proxy)
+- S3-compatible (MinIO) via existing `src/storage/s3-client.ts` patterns (008-cdn-artifact-proxy)
 
 ## Recent Changes
 - 001-mcp-hello-world: Added TypeScript 5.x, Node.js 24+, ESM modules + `@modelcontextprotocol/sdk`, `zod` (schema validation)
