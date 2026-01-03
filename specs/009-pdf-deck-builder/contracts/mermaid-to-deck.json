@@ -1,0 +1,370 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "mermaid_to_deck MCP Tool Contract",
+  "description": "Generate a multi-page PDF deck from multiple Mermaid diagrams",
+  "type": "object",
+  "definitions": {
+    "DiagramInput": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1048576,
+          "description": "Mermaid diagram source code (1 byte to 1MB)"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Optional title for this page"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Margins": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 144,
+          "default": 36,
+          "description": "Top margin in points"
+        },
+        "right": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 144,
+          "default": 36,
+          "description": "Right margin in points"
+        },
+        "bottom": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 144,
+          "default": 36,
+          "description": "Bottom margin in points"
+        },
+        "left": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 144,
+          "default": 36,
+          "description": "Left margin in points"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PageMetadata": {
+      "type": "object",
+      "required": ["index", "diagram_type"],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based page index"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title if provided in input"
+        },
+        "diagram_type": {
+          "type": "string",
+          "description": "Detected Mermaid diagram type",
+          "enum": [
+            "flowchart",
+            "sequence",
+            "class",
+            "state",
+            "er",
+            "journey",
+            "gantt",
+            "pie",
+            "mindmap",
+            "timeline",
+            "quadrant",
+            "git",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "S3Location": {
+      "type": "object",
+      "required": ["bucket", "key", "region"],
+      "properties": {
+        "bucket": {
+          "type": "string",
+          "description": "S3 bucket name"
+        },
+        "key": {
+          "type": "string",
+          "description": "Object key (artifact_id.pdf)"
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Warning": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Warning code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable warning"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenderError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_INPUT",
+            "INPUT_TOO_LARGE",
+            "PARSE_ERROR",
+            "UNSUPPORTED_DIAGRAM",
+            "INVALID_CONFIG",
+            "INVALID_TIMEOUT",
+            "RENDER_TIMEOUT",
+            "RENDER_FAILED",
+            "STORAGE_FAILED",
+            "PDF_GENERATION_FAILED"
+          ],
+          "description": "Stable error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error description"
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "diagram_index": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Index of failing diagram"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Line number for parse errors"
+            }
+          },
+          "additionalProperties": true,
+          "description": "Additional error context"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["diagrams"],
+      "properties": {
+        "diagrams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramInput"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "Array of Mermaid diagrams (1-100)"
+        },
+        "page_size": {
+          "type": "string",
+          "enum": ["letter", "a4", "legal"],
+          "default": "letter",
+          "description": "PDF page size"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["landscape", "portrait"],
+          "default": "landscape",
+          "description": "Page orientation"
+        },
+        "show_titles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display diagram titles on pages"
+        },
+        "margins": {
+          "$ref": "#/definitions/Margins",
+          "description": "Page margins (default 36pt all sides)"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "dark", "forest", "neutral"],
+          "default": "default",
+          "description": "Mermaid color theme"
+        },
+        "background": {
+          "type": "string",
+          "default": "#ffffff",
+          "description": "Page background color (CSS color)"
+        },
+        "drop_shadow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply drop shadow to nodes"
+        },
+        "google_font": {
+          "type": "string",
+          "default": "Source Code Pro",
+          "description": "Google Font for diagram text"
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000,
+          "default": 120000,
+          "description": "Global timeout in milliseconds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "request_id",
+            "artifact_id",
+            "download_url",
+            "curl_command",
+            "s3",
+            "expires_in_seconds",
+            "content_type",
+            "size_bytes",
+            "page_count",
+            "pages",
+            "warnings",
+            "errors"
+          ],
+          "properties": {
+            "ok": {
+              "const": true
+            },
+            "request_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unique request identifier"
+            },
+            "artifact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Generated artifact ID"
+            },
+            "download_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Presigned S3 download URL"
+            },
+            "cdn_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "CDN URL (when configured)"
+            },
+            "curl_command": {
+              "type": "string",
+              "description": "Ready-to-use download command"
+            },
+            "s3": {
+              "$ref": "#/definitions/S3Location"
+            },
+            "expires_in_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "URL expiration time"
+            },
+            "content_type": {
+              "const": "application/pdf"
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "PDF file size"
+            },
+            "page_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Number of pages in deck"
+            },
+            "pages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PageMetadata"
+              },
+              "minItems": 1,
+              "maxItems": 100,
+              "description": "Per-page metadata"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Warning"
+              },
+              "description": "Non-fatal warnings"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/RenderError"
+              },
+              "maxItems": 0,
+              "description": "Empty for success responses"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Success response"
+        },
+        {
+          "type": "object",
+          "required": ["ok", "request_id", "warnings", "errors"],
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "request_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unique request identifier"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Warning"
+              },
+              "description": "Non-fatal warnings"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/RenderError"
+              },
+              "minItems": 1,
+              "description": "At least one error"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Error response"
+        }
+      ]
+    }
+  }
+}
