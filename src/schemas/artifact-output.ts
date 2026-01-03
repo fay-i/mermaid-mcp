@@ -51,6 +51,8 @@ export const ArtifactSuccessOutputSchema = z.object({
   expires_in_seconds: z.number().int().positive(),
   content_type: z.enum(["image/svg+xml", "application/pdf"]),
   size_bytes: z.number().int().nonnegative(),
+  /** CDN URL for artifact access (when CDN proxy is configured) */
+  cdn_url: z.string().url().optional(),
   warnings: z.array(WarningSchema),
   errors: z.array(RenderErrorSchema).max(0),
 });

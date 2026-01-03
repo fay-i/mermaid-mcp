@@ -460,8 +460,10 @@ export async function mermaidToSvgWithFallback(
 import type { S3Storage } from "../storage/index.js";
 import type {
   ArtifactOutput,
+  ArtifactSuccessOutput,
   RenderError as ArtifactRenderError,
 } from "../schemas/artifact-output.js";
+import { getCdnBaseUrl, buildCdnUrl } from "./cdn-url.js";
 
 /**
  * Map internal RenderError to ArtifactRenderError.
@@ -551,7 +553,8 @@ export async function mermaidToSvgS3(
     const escapedUrl = artifact.download_url.replace(/'/g, "'\\''");
     const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
 
-    return {
+    // Build response object
+    const response: ArtifactSuccessOutput = {
       ok: true,
       request_id: requestId,
       artifact_id: artifact.artifact_id,
@@ -564,6 +567,14 @@ export async function mermaidToSvgS3(
       warnings: [],
       errors: [],
     };
+
+    // Conditionally add cdn_url when configured
+    const cdnBaseUrl = getCdnBaseUrl();
+    if (cdnBaseUrl) {
+      response.cdn_url = buildCdnUrl(cdnBaseUrl, artifact.artifact_id, "svg");
+    }
+
+    return response;
   } catch (error) {
     return createS3ErrorResponse(requestId, {
       code: "STORAGE_FAILED",

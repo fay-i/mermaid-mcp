@@ -1,0 +1,347 @@
+openapi: 3.1.0
+info:
+  title: Mermaid CDN Artifact Proxy API
+  description: |
+    HTTP proxy service for serving Mermaid artifacts from S3/MinIO storage.
+    Provides credential-free access to artifacts for LAN clients.
+  version: 1.0.0
+  contact:
+    name: Mermaid MCP Project
+
+servers:
+  - url: http://localhost:8101
+    description: Local development
+  - url: http://cdn-proxy.mermaid-mcp:8101
+    description: Kubernetes cluster (internal)
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: |
+        Returns service health status including S3 connectivity and cache statistics.
+        Used by Kubernetes liveness and readiness probes.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                ok: true
+                service: cdn-proxy
+                s3_connected: true
+                cache:
+                  hits: 1234
+                  misses: 567
+                  evictions: 42
+                  hit_rate: 0.685
+                  size_bytes: 52428800
+                  max_size_bytes: 268435456
+                  entry_count: 42
+                uptime_seconds: 3600
+                timestamp: "2026-01-02T12:00:00.000Z"
+        '503':
+          description: Service unhealthy (S3 unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                ok: false
+                service: cdn-proxy
+                s3_connected: false
+                uptime_seconds: 3600
+                timestamp: "2026-01-02T12:00:00.000Z"
+
+  /artifacts/{artifactId}.svg:
+    get:
+      operationId: getArtifactSvg
+      summary: Retrieve SVG artifact
+      description: |
+        Fetches an SVG artifact from S3/MinIO storage. Optionally served from
+        in-memory cache if previously requested and cache is enabled.
+      tags:
+        - Artifacts
+      parameters:
+        - $ref: '#/components/parameters/ArtifactId'
+      responses:
+        '200':
+          description: SVG artifact content
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                const: image/svg+xml
+            Content-Length:
+              schema:
+                type: integer
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=86400"
+            X-Artifact-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS, BYPASS]
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            ETag:
+              schema:
+                type: string
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/S3Error'
+        '503':
+          $ref: '#/components/responses/NotConfigured'
+
+  /artifacts/{artifactId}.pdf:
+    get:
+      operationId: getArtifactPdf
+      summary: Retrieve PDF artifact
+      description: |
+        Fetches a PDF artifact from S3/MinIO storage. Optionally served from
+        in-memory cache if previously requested and cache is enabled.
+      tags:
+        - Artifacts
+      parameters:
+        - $ref: '#/components/parameters/ArtifactId'
+      responses:
+        '200':
+          description: PDF artifact content
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                const: application/pdf
+            Content-Length:
+              schema:
+                type: integer
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=86400"
+            X-Artifact-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS, BYPASS]
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            ETag:
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/S3Error'
+        '503':
+          $ref: '#/components/responses/NotConfigured'
+
+components:
+  parameters:
+    ArtifactId:
+      name: artifactId
+      in: path
+      required: true
+      description: UUID of the artifact
+      schema:
+        type: string
+        format: uuid
+        pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+        example: "123e4567-e89b-12d3-a456-426614174000"
+
+  schemas:
+    HealthStatus:
+      type: object
+      required:
+        - ok
+        - service
+        - s3_connected
+        - timestamp
+        - uptime_seconds
+      properties:
+        ok:
+          type: boolean
+          description: Overall health status
+        service:
+          type: string
+          const: cdn-proxy
+          description: Service identifier
+        s3_connected:
+          type: boolean
+          description: Whether S3/MinIO is reachable
+        cache:
+          $ref: '#/components/schemas/CacheStats'
+        uptime_seconds:
+          type: integer
+          minimum: 0
+          description: Service uptime in seconds
+        timestamp:
+          type: string
+          format: date-time
+          description: Current timestamp (ISO 8601)
+
+    CacheStats:
+      type: object
+      required:
+        - hits
+        - misses
+        - evictions
+        - hit_rate
+        - size_bytes
+        - max_size_bytes
+        - entry_count
+      properties:
+        hits:
+          type: integer
+          minimum: 0
+          description: Number of cache hits
+        misses:
+          type: integer
+          minimum: 0
+          description: Number of cache misses
+        evictions:
+          type: integer
+          minimum: 0
+          description: Number of entries evicted
+        hit_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Cache hit rate (hits / (hits + misses))
+        size_bytes:
+          type: integer
+          minimum: 0
+          description: Current cache size in bytes
+        max_size_bytes:
+          type: integer
+          minimum: 0
+          description: Maximum cache size in bytes
+        entry_count:
+          type: integer
+          minimum: 0
+          description: Number of entries in cache
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - path
+        - request_id
+        - timestamp
+      properties:
+        error:
+          type: string
+          enum:
+            - ARTIFACT_NOT_FOUND
+            - INVALID_PATH
+            - S3_ERROR
+            - NOT_CONFIGURED
+            - INTERNAL_ERROR
+          description: Stable error code
+        message:
+          type: string
+          description: Human-readable error message
+        path:
+          type: string
+          description: Request path
+        request_id:
+          type: string
+          format: uuid
+          description: Request ID for correlation
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp (ISO 8601)
+
+  responses:
+    BadRequest:
+      description: Invalid request path
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: INVALID_PATH
+            message: "Invalid artifact path format"
+            path: "/artifacts/invalid"
+            request_id: "123e4567-e89b-12d3-a456-426614174000"
+            timestamp: "2026-01-02T12:00:00.000Z"
+
+    NotFound:
+      description: Artifact not found in S3
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: ARTIFACT_NOT_FOUND
+            message: "Artifact does not exist"
+            path: "/artifacts/123e4567-e89b-12d3-a456-426614174000.svg"
+            request_id: "123e4567-e89b-12d3-a456-426614174000"
+            timestamp: "2026-01-02T12:00:00.000Z"
+
+    S3Error:
+      description: S3 storage error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: S3_ERROR
+            message: "Failed to retrieve artifact from storage"
+            path: "/artifacts/123e4567-e89b-12d3-a456-426614174000.svg"
+            request_id: "123e4567-e89b-12d3-a456-426614174000"
+            timestamp: "2026-01-02T12:00:00.000Z"
+
+    NotConfigured:
+      description: S3 credentials not configured
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: NOT_CONFIGURED
+            message: "S3 storage is not configured"
+            path: "/artifacts/123e4567-e89b-12d3-a456-426614174000.svg"
+            request_id: "123e4567-e89b-12d3-a456-426614174000"
+            timestamp: "2026-01-02T12:00:00.000Z"
+
+tags:
+  - name: Health
+    description: Service health and monitoring
+  - name: Artifacts
+    description: Artifact retrieval endpoints
