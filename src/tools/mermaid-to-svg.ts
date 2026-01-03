@@ -461,16 +461,15 @@ import type { S3Storage } from "../storage/index.js";
 import type {
   ArtifactOutput,
   RenderError as ArtifactRenderError,
-  ErrorCode as ArtifactErrorCode,
 } from "../schemas/artifact-output.js";
 
 /**
  * Map internal RenderError to ArtifactRenderError.
- * This ensures type safety without unsafe casts.
+ * Both types now use the shared ErrorCodeSchema, so they're structurally identical.
  */
 function mapToArtifactError(error: RenderError): ArtifactRenderError {
   return {
-    code: error.code as ArtifactErrorCode,
+    code: error.code,
     message: error.message,
     details: error.details,
   };

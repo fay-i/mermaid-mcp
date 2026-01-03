@@ -43,6 +43,8 @@ export interface ArtifactResult {
 export class S3Storage {
   private client: S3Client;
   private config: S3Config;
+  /** Guard to prevent concurrent cleanup operations */
+  private cleanupInProgress = false;
 
   constructor(config: S3Config) {
     this.config = config;
@@ -112,52 +114,63 @@ export class S3Storage {
   /**
    * Cleanup artifacts older than the retention period.
    * Called opportunistically on writes to avoid accumulating old data.
+   * Uses an in-progress guard to prevent concurrent cleanup operations.
    *
-   * @returns Number of objects deleted
+   * @returns Number of objects deleted, or -1 if cleanup was skipped (already in progress)
    */
   async cleanupOldArtifacts(): Promise<number> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - this.config.retentionDays);
+    // Guard against concurrent cleanup operations
+    if (this.cleanupInProgress) {
+      return -1; // Skip if already running
+    }
 
-    let deletedCount = 0;
-    let continuationToken: string | undefined;
+    this.cleanupInProgress = true;
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - this.config.retentionDays);
 
-    do {
-      // List objects in bucket
-      const listResponse = await this.client.send(
-        new ListObjectsV2Command({
-          Bucket: this.config.bucket,
-          ContinuationToken: continuationToken,
-        }),
-      );
+      let deletedCount = 0;
+      let continuationToken: string | undefined;
 
-      if (!listResponse.Contents || listResponse.Contents.length === 0) {
-        break;
-      }
-
-      // Find objects older than retention period
-      const objectsToDelete: { Key: string }[] = [];
-      for (const obj of listResponse.Contents) {
-        if (obj.Key && obj.LastModified && obj.LastModified < cutoffDate) {
-          objectsToDelete.push({ Key: obj.Key });
-        }
-      }
-
-      // Delete old objects in batch
-      if (objectsToDelete.length > 0) {
-        await this.client.send(
-          new DeleteObjectsCommand({
+      do {
+        // List objects in bucket
+        const listResponse = await this.client.send(
+          new ListObjectsV2Command({
             Bucket: this.config.bucket,
-            Delete: { Objects: objectsToDelete },
+            ContinuationToken: continuationToken,
           }),
         );
-        deletedCount += objectsToDelete.length;
-      }
 
-      continuationToken = listResponse.NextContinuationToken;
-    } while (continuationToken);
+        if (!listResponse.Contents || listResponse.Contents.length === 0) {
+          break;
+        }
 
-    return deletedCount;
+        // Find objects older than retention period
+        const objectsToDelete: { Key: string }[] = [];
+        for (const obj of listResponse.Contents) {
+          if (obj.Key && obj.LastModified && obj.LastModified < cutoffDate) {
+            objectsToDelete.push({ Key: obj.Key });
+          }
+        }
+
+        // Delete old objects in batch
+        if (objectsToDelete.length > 0) {
+          await this.client.send(
+            new DeleteObjectsCommand({
+              Bucket: this.config.bucket,
+              Delete: { Objects: objectsToDelete },
+            }),
+          );
+          deletedCount += objectsToDelete.length;
+        }
+
+        continuationToken = listResponse.NextContinuationToken;
+      } while (continuationToken);
+
+      return deletedCount;
+    } finally {
+      this.cleanupInProgress = false;
+    }
   }
 
   /**

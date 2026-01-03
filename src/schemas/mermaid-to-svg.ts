@@ -1,5 +1,14 @@
 import { z } from "zod";
 import { ArtifactRefSchema } from "./artifact-ref.js";
+import {
+  ErrorCodeSchema,
+  RenderErrorSchema,
+  type ErrorCode,
+  type RenderError,
+} from "./error-codes.js";
+
+// Re-export for backwards compatibility
+export { ErrorCodeSchema, RenderErrorSchema, type ErrorCode, type RenderError };
 
 /**
  * Input schema for the mermaid_to_svg MCP tool.
@@ -21,22 +30,6 @@ export const MermaidToSvgInputSchema = z.object({
 export type MermaidToSvgInput = z.infer<typeof MermaidToSvgInputSchema>;
 
 /**
- * Stable error codes for render failures.
- */
-export const ErrorCodeSchema = z.enum([
-  "INVALID_INPUT",
-  "INPUT_TOO_LARGE",
-  "PARSE_ERROR",
-  "UNSUPPORTED_DIAGRAM",
-  "INVALID_CONFIG",
-  "INVALID_TIMEOUT",
-  "RENDER_TIMEOUT",
-  "RENDER_FAILED",
-]);
-
-export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
-
-/**
  * Warning object for non-fatal issues.
  */
 export const WarningSchema = z.object({
@@ -47,20 +40,6 @@ export const WarningSchema = z.object({
 });
 
 export type Warning = z.infer<typeof WarningSchema>;
-
-/**
- * Error object for render failures.
- */
-export const RenderErrorSchema = z.object({
-  /** Stable error code */
-  code: ErrorCodeSchema,
-  /** Human-readable error description */
-  message: z.string(),
-  /** Additional context (e.g., line/column for parse errors) */
-  details: z.record(z.string(), z.unknown()).optional(),
-});
-
-export type RenderError = z.infer<typeof RenderErrorSchema>;
 
 /**
  * Success response for mermaid_to_svg tool.

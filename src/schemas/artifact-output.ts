@@ -4,6 +4,15 @@
  */
 
 import { z } from "zod";
+import {
+  ErrorCodeSchema,
+  RenderErrorSchema,
+  type ErrorCode,
+  type RenderError,
+} from "./error-codes.js";
+
+// Re-export for backwards compatibility
+export { ErrorCodeSchema, RenderErrorSchema, type ErrorCode, type RenderError };
 
 /**
  * Warning object for non-fatal issues.
@@ -14,35 +23,6 @@ export const WarningSchema = z.object({
 });
 
 export type Warning = z.infer<typeof WarningSchema>;
-
-/**
- * Error codes for render failures.
- */
-export const ErrorCodeSchema = z.enum([
-  "INVALID_INPUT",
-  "INPUT_TOO_LARGE",
-  "INVALID_TIMEOUT",
-  "INVALID_CONFIG",
-  "PARSE_ERROR",
-  "RENDER_FAILED",
-  "RENDER_TIMEOUT",
-  "STORAGE_FAILED",
-  "PDF_GENERATION_FAILED",
-  "UNSUPPORTED_DIAGRAM",
-]);
-
-export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
-
-/**
- * Error object for render failures.
- */
-export const RenderErrorSchema = z.object({
-  code: ErrorCodeSchema,
-  message: z.string(),
-  details: z.record(z.string(), z.unknown()).optional(),
-});
-
-export type RenderError = z.infer<typeof RenderErrorSchema>;
 
 /**
  * S3 location info for aws-cli access.
