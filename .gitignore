@@ -16,7 +16,8 @@ Thumbs.db
 *.log
 
 # Environment
-.env*
+.env
+.env.local
 
 # Test coverage
 coverage/

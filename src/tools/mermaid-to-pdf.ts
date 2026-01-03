@@ -579,3 +579,122 @@ export async function mermaidToPdfWithFallback(
 
   return inlineResponse;
 }
+
+// ============================================
+// S3 Storage version
+// ============================================
+
+import type { S3Storage } from "../storage/index.js";
+import type {
+  ArtifactOutput,
+  RenderError as ArtifactRenderError,
+} from "../schemas/artifact-output.js";
+
+/**
+ * Map internal PdfRenderError to ArtifactRenderError.
+ * Both types now use the shared ErrorCodeSchema, so they're structurally identical.
+ */
+function mapToArtifactError(error: PdfRenderError): ArtifactRenderError {
+  return {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+  };
+}
+
+/**
+ * Create an S3 error response.
+ */
+function createS3ErrorResponse(
+  requestId: string,
+  error: ArtifactRenderError,
+): ArtifactOutput {
+  return {
+    ok: false,
+    request_id: requestId,
+    warnings: [],
+    errors: [error],
+  };
+}
+
+/**
+ * MCP tool handler: mermaid_to_pdf with S3 storage.
+ * Converts Mermaid diagram source to PDF format, stores in S3,
+ * and returns a presigned download URL.
+ *
+ * @param input - Tool input parameters
+ * @param storage - S3Storage instance
+ * @returns Output with presigned download URL
+ */
+export async function mermaidToPdfS3(
+  input: MermaidToPdfInput,
+  storage: S3Storage,
+): Promise<ArtifactOutput> {
+  const requestId = randomUUID();
+
+  // 1. Validate input code
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(inputError));
+  }
+
+  // 2. Validate timeout_ms
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(timeoutError));
+  }
+
+  // 3. Parse config_json
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(configError));
+  }
+
+  // 4. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+  );
+
+  if ("error" in renderResult) {
+    return createS3ErrorResponse(
+      requestId,
+      mapToArtifactError(renderResult.error),
+    );
+  }
+
+  // 5. Store in S3 and get presigned URL
+  try {
+    const pdfBuffer = Buffer.from(renderResult.pdf, "base64");
+    const artifact = await storage.storeArtifact(pdfBuffer, "application/pdf");
+
+    // Generate curl command with output filename
+    // Escape single quotes in URL for shell safety (replace ' with '\'' for proper shell escaping)
+    const outputFile = `${artifact.artifact_id}.pdf`;
+    const escapedUrl = artifact.download_url.replace(/'/g, "'\\''");
+    const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
+
+    return {
+      ok: true,
+      request_id: requestId,
+      artifact_id: artifact.artifact_id,
+      download_url: artifact.download_url,
+      curl_command: curlCommand,
+      s3: artifact.s3,
+      expires_in_seconds: artifact.expires_in_seconds,
+      content_type: "application/pdf",
+      size_bytes: artifact.size_bytes,
+      warnings: [],
+      errors: [],
+    };
+  } catch (error) {
+    return createS3ErrorResponse(requestId, {
+      code: "STORAGE_FAILED",
+      message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}

@@ -50,17 +50,9 @@ describe("Storage Quota Management", () => {
         "image/svg+xml",
       );
       await new Promise((r) => setTimeout(r, 10)); // Small delay for different timestamps
-      const ref2 = await cacheManager.writeArtifact(
-        sessionId,
-        content2,
-        "image/svg+xml",
-      );
+      await cacheManager.writeArtifact(sessionId, content2, "image/svg+xml");
       await new Promise((r) => setTimeout(r, 10));
-      const ref3 = await cacheManager.writeArtifact(
-        sessionId,
-        content3,
-        "image/svg+xml",
-      );
+      await cacheManager.writeArtifact(sessionId, content3, "image/svg+xml");
 
       // Write 4th artifact (would exceed quota)
       const content4 = Buffer.from("d".repeat(30), "utf-8");

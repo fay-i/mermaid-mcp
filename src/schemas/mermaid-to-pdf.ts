@@ -1,42 +1,35 @@
 import { z } from "zod";
 import {
   WarningSchema,
-  RenderErrorSchema,
-  ErrorCodeSchema,
   CacheWarningSchema,
   type Warning,
-  type RenderError,
 } from "./mermaid-to-svg.js";
+import {
+  ErrorCodeSchema,
+  RenderErrorSchema,
+  type ErrorCode,
+  type RenderError,
+} from "./error-codes.js";
 import { ArtifactRefSchema } from "./artifact-ref.js";
 
 // Re-export shared types
 export { WarningSchema, RenderErrorSchema, type Warning, type RenderError };
 
 /**
- * Extended error codes for mermaid_to_pdf tool.
- * Adds PDF_GENERATION_FAILED to the existing SVG error codes.
+ * PDF error code schema - uses the shared error code schema.
+ * PDF_GENERATION_FAILED is included in the shared schema.
  */
-export const PdfErrorCodeSchema = z.enum([
-  ...ErrorCodeSchema.options,
-  "PDF_GENERATION_FAILED",
-]);
+export const PdfErrorCodeSchema = ErrorCodeSchema;
 
-export type PdfErrorCode = z.infer<typeof PdfErrorCodeSchema>;
+export type PdfErrorCode = ErrorCode;
 
 /**
  * Error object for PDF render failures.
- * Uses extended error codes.
+ * Uses the shared error schema.
  */
-export const PdfRenderErrorSchema = z.object({
-  /** Stable error code (includes PDF-specific codes) */
-  code: PdfErrorCodeSchema,
-  /** Human-readable error description */
-  message: z.string(),
-  /** Additional context (e.g., line/column for parse errors) */
-  details: z.record(z.string(), z.unknown()).optional(),
-});
+export const PdfRenderErrorSchema = RenderErrorSchema;
 
-export type PdfRenderError = z.infer<typeof PdfRenderErrorSchema>;
+export type PdfRenderError = RenderError;
 
 /**
  * Input schema for the mermaid_to_pdf MCP tool.

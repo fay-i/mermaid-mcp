@@ -268,7 +268,6 @@ log_info "Test: tools/list - Server exposes mermaid_to_pdf tool"
 output=$(run_mcp_cli "tools/list")
 assert_contains "$output" '"name": "mermaid_to_pdf"' "mermaid_to_pdf tool is listed"
 assert_contains "$output" 'Render Mermaid diagram source code to PDF' "mermaid_to_pdf has description"
-assert_contains "$output" 'base64-encoded PDF' "mermaid_to_pdf describes base64 output"
 
 echo ""
 
