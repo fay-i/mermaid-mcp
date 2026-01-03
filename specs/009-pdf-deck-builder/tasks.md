@@ -19,10 +19,10 @@
 
 **Purpose**: Project initialization, dependency updates, and schema foundation
 
-- [ ] T001 Move pdf-lib from devDependencies to dependencies in package.json
-- [ ] T002 [P] Create src/schemas/mermaid-to-deck.ts with Zod schemas for DiagramInput, Margins, DeckRequest
-- [ ] T003 [P] Create src/schemas/deck-response.ts with Zod schemas for PageMetadata, S3Location, DeckSuccessResponse, DeckErrorResponse
-- [ ] T004 Add deck-specific error codes to src/schemas/error-codes.ts (PDF_GENERATION_FAILED, INVALID_TIMEOUT)
+- [X] T001 Move pdf-lib from devDependencies to dependencies in package.json
+- [X] T002 [P] Create src/schemas/mermaid-to-deck.ts with Zod schemas for DiagramInput, Margins, DeckRequest
+- [X] T003 [P] Create src/schemas/deck-response.ts with Zod schemas for PageMetadata, S3Location, DeckSuccessResponse, DeckErrorResponse
+- [X] T004 Add deck-specific error codes to src/schemas/error-codes.ts (PDF_GENERATION_FAILED, INVALID_TIMEOUT)
 
 ---
 
@@ -30,9 +30,9 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [ ] T005 Create src/renderer/deck-assembler.ts with pdf-lib assembly function signature (stub)
-- [ ] T006 Create src/tools/deck-renderer.ts with multi-diagram rendering function signature (stub)
-- [ ] T007 Create src/tools/mermaid-to-deck.ts tool file with tool registration skeleton
+- [X] T005 Create src/renderer/deck-assembler.ts with pdf-lib assembly function signature (stub)
+- [X] T006 Create src/tools/deck-renderer.ts with multi-diagram rendering function signature (stub)
+- [X] T007 Create src/tools/mermaid-to-deck.ts tool file with tool registration skeleton
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -48,23 +48,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Behavior test for input validation (empty array, missing code) in tests/behavior/mermaid-to-deck.test.ts
-- [ ] T009 [P] [US1] Behavior test for successful 3-diagram deck generation in tests/behavior/mermaid-to-deck.test.ts
-- [ ] T010 [P] [US1] Behavior test for page count matching diagram count in tests/behavior/mermaid-to-deck.test.ts
-- [ ] T011 [P] [US1] Behavior test for HTML template generation in tests/behavior/deck-assembler.test.ts
-- [ ] T012 [P] [US1] Behavior test for PDF page assembly in tests/behavior/deck-assembler.test.ts
+- [X] T008 [P] [US1] Behavior test for input validation (empty array, missing code) in tests/behavior/mermaid-to-deck/input-validation.test.ts
+- [X] T009 [P] [US1] Behavior test for successful 3-diagram deck generation in tests/behavior/mermaid-to-deck/deck-generation.test.ts
+- [X] T010 [P] [US1] Behavior test for page count matching diagram count in tests/behavior/mermaid-to-deck/deck-generation.test.ts
+- [X] T011 [P] [US1] Behavior test for HTML template generation in tests/behavior/mermaid-to-deck/deck-assembler.test.ts
+- [X] T012 [P] [US1] Behavior test for PDF page assembly in tests/behavior/mermaid-to-deck/deck-assembler.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement input validation in src/tools/mermaid-to-deck.ts (diagrams array 1-100 items)
-- [ ] T014 [US1] Implement size validation in src/tools/mermaid-to-deck.ts (10MB total, 1MB per diagram)
-- [ ] T015 [US1] Implement browser lifecycle management in src/tools/deck-renderer.ts (launch once, reuse page)
-- [ ] T016 [US1] Implement createPageHtml() template function in src/renderer/deck-assembler.ts
-- [ ] T017 [US1] Implement SVG rendering loop in src/tools/deck-renderer.ts (iterate diagrams, call render())
-- [ ] T018 [US1] Implement PDF page assembly with pdf-lib in src/renderer/deck-assembler.ts
-- [ ] T019 [US1] Implement S3 storage integration in src/tools/mermaid-to-deck.ts (reuse S3Storage.storeArtifact)
-- [ ] T020 [US1] Implement success response builder in src/tools/mermaid-to-deck.ts (download_url, page_count, pages)
-- [ ] T021 [US1] Register mermaid_to_deck tool in src/tools/index.ts
+- [X] T013 [US1] Implement input validation in src/tools/mermaid-to-deck.ts (diagrams array 1-100 items)
+- [X] T014 [US1] Implement size validation in src/tools/mermaid-to-deck.ts (10MB total, 1MB per diagram)
+- [X] T015 [US1] Implement browser lifecycle management in src/tools/deck-renderer.ts (launch once, reuse page)
+- [X] T016 [US1] Implement createPageHtml() template function in src/renderer/deck-assembler.ts
+- [X] T017 [US1] Implement SVG rendering loop in src/tools/deck-renderer.ts (iterate diagrams, call render())
+- [X] T018 [US1] Implement PDF page assembly with pdf-lib in src/renderer/deck-assembler.ts
+- [X] T019 [US1] Implement S3 storage integration in src/tools/mermaid-to-deck.ts (reuse S3Storage.storeArtifact)
+- [X] T020 [US1] Implement success response builder in src/tools/mermaid-to-deck.ts (download_url, page_count, pages)
+- [X] T021 [US1] Register mermaid_to_deck tool in src/tools/index.ts
 
 **Checkpoint**: User Story 1 complete - basic deck generation works with default options
 
