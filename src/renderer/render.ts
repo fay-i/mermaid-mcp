@@ -33,6 +33,9 @@ export async function render(
       htmlLabels: true,
       curve: "basis" as const,
       diagramPadding: 20,
+      // Subgraph title margin to prevent title-node collision (Issue #138)
+      // Default Mermaid values are { top: 0, bottom: 0 } which causes overlap
+      subGraphTitleMargin: { top: 10, bottom: 5 },
     },
     sequence: {
       useMaxWidth: false,
