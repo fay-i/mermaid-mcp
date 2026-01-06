@@ -125,17 +125,18 @@ const DROP_SHADOW_FILTER = `<defs>
 function injectDropShadow(svg: string): string {
   // Find the first <g> element after the opening <svg> tag to insert defs before it
   const svgOpenMatch = svg.match(/<svg[^>]*>/);
-  if (!svgOpenMatch) {
+  if (!svgOpenMatch || svgOpenMatch.index === undefined) {
     return svg;
   }
 
-  const insertPos = svgOpenMatch.index! + svgOpenMatch[0].length;
+  const insertPos = svgOpenMatch.index + svgOpenMatch[0].length;
 
   // Find where to insert - after style tag if present, otherwise after svg open
   const styleEndMatch = svg.match(/<\/style>/);
-  const actualInsertPos = styleEndMatch
-    ? styleEndMatch.index! + styleEndMatch[0].length
-    : insertPos;
+  const actualInsertPos =
+    styleEndMatch && styleEndMatch.index !== undefined
+      ? styleEndMatch.index + styleEndMatch[0].length
+      : insertPos;
 
   // Insert the filter definition
   svg =

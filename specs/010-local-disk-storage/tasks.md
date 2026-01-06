@@ -19,12 +19,12 @@
 
 **PR Scope**: Foundation for all storage backends
 
-- [ ] T001 Create StorageBackend interface, StorageResult interface, and StorageErrorCode type in src/storage/types.ts
-- [ ] T002 [P] Create StorageError base class and specific error subclasses (ArtifactNotFoundError, StorageFullError, StoragePermissionError) in src/storage/errors.ts
-- [ ] T003 [P] Create Zod schemas for StorageResult validation in src/storage/schemas.ts
-- [ ] T004 Create storage configuration loader with Zod validation in src/storage/config.ts
-- [ ] T005 Create unit tests for configuration parsing in tests/behavior/storage/config.test.ts
-- [ ] T006 Update src/storage/index.ts to export new types and config
+- [X] T001 Create StorageBackend interface, StorageResult interface, and StorageErrorCode type in src/storage/types.ts
+- [X] T002 [P] Create StorageError base class and specific error subclasses (ArtifactNotFoundError, StorageFullError, StoragePermissionError) in src/storage/errors.ts
+- [X] T003 [P] Create Zod schemas for StorageResult validation in src/storage/schemas.ts
+- [X] T004 Create storage configuration loader with Zod validation in src/storage/config.ts
+- [X] T005 Create unit tests for configuration parsing in tests/behavior/storage/config.test.ts
+- [X] T006 Update src/storage/index.ts to export new types and config
 
 **Checkpoint**: Run `npm run quality` — Types compile, config tests pass
 
@@ -40,18 +40,18 @@
 
 ### Core Implementation for User Story 1
 
-- [ ] T007 [US1] Create LocalStorageBackend class implementing StorageBackend in src/storage/local-backend.ts
-- [ ] T008 [US1] Implement store() with atomic write (temp file + rename) in src/storage/local-backend.ts
-- [ ] T009 [US1] Implement retrieve() with error handling in src/storage/local-backend.ts
-- [ ] T010 [P] [US1] Implement delete() with safe removal in src/storage/local-backend.ts
-- [ ] T011 [P] [US1] Implement exists() with filesystem check in src/storage/local-backend.ts
-- [ ] T012 [US1] Implement getType() returning 'local' in src/storage/local-backend.ts
-- [ ] T013 [US1] Implement session directory lazy creation in src/storage/local-backend.ts
-- [ ] T014 [US1] Implement URL construction using HOST_STORAGE_PATH and LOCAL_URL_SCHEME in src/storage/local-backend.ts
+- [X] T007 [US1] Create LocalStorageBackend class implementing StorageBackend in src/storage/local-backend.ts
+- [X] T008 [US1] Implement store() with atomic write (temp file + rename) in src/storage/local-backend.ts
+- [X] T009 [US1] Implement retrieve() with error handling in src/storage/local-backend.ts
+- [X] T010 [P] [US1] Implement delete() with safe removal in src/storage/local-backend.ts
+- [X] T011 [P] [US1] Implement exists() with filesystem check in src/storage/local-backend.ts
+- [X] T012 [US1] Implement getType() returning 'local' in src/storage/local-backend.ts
+- [X] T013 [US1] Implement session directory lazy creation in src/storage/local-backend.ts
+- [X] T014 [US1] Implement URL construction using HOST_STORAGE_PATH and LOCAL_URL_SCHEME in src/storage/local-backend.ts
   - LOCAL_URL_SCHEME=file (default): `file://{HOST_STORAGE_PATH}/{session}/{artifact}.{ext}`
   - LOCAL_URL_SCHEME=http: `http://{CDN_HOST}:{CDN_PORT}/artifacts/{session}/{artifact}.{ext}`
-- [ ] T015 [US1] Implement orphaned .tmp file cleanup on startup in src/storage/local-backend.ts
-- [ ] T015a [US1] Implement startup write access validation (FR-008) in src/storage/local-backend.ts
+- [X] T015 [US1] Implement orphaned .tmp file cleanup on startup in src/storage/local-backend.ts
+- [X] T015a [US1] Implement startup write access validation (FR-008) in src/storage/local-backend.ts
   - Create test file on initialization
   - Delete test file after successful write
   - Throw StoragePermissionError if write fails
@@ -59,19 +59,19 @@
 
 ### Error Handling for User Story 1
 
-- [ ] T016 [US1] Handle ENOSPC (disk full) → STORAGE_FULL error in src/storage/local-backend.ts
-- [ ] T017 [P] [US1] Handle EACCES (permission denied) → PERMISSION_DENIED error in src/storage/local-backend.ts
-- [ ] T018 [P] [US1] Handle ENOENT (not found) → ARTIFACT_NOT_FOUND error in src/storage/local-backend.ts
-- [ ] T019 [US1] Add UUID validation for path traversal prevention in src/storage/local-backend.ts
+- [X] T016 [US1] Handle ENOSPC (disk full) → STORAGE_FULL error in src/storage/local-backend.ts
+- [X] T017 [P] [US1] Handle EACCES (permission denied) → PERMISSION_DENIED error in src/storage/local-backend.ts
+- [X] T018 [P] [US1] Handle ENOENT (not found) → ARTIFACT_NOT_FOUND error in src/storage/local-backend.ts
+- [X] T019 [US1] Add UUID validation for path traversal prevention in src/storage/local-backend.ts
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] Unit tests for store() atomic write behavior in tests/behavior/storage/local-backend.test.ts
-- [ ] T021 [P] [US1] Unit tests for retrieve() and error cases in tests/behavior/storage/local-backend.test.ts
-- [ ] T022 [P] [US1] Unit tests for delete() and exists() in tests/behavior/storage/local-backend.test.ts
-- [ ] T023 [P] [US1] Unit tests for URL generation (both file:// and http:// schemes) in tests/behavior/storage/local-backend.test.ts
-- [ ] T024 [US1] Unit tests for orphaned .tmp cleanup in tests/behavior/storage/local-backend.test.ts
-- [ ] T024a [US1] Unit test for startup write access validation in tests/behavior/storage/local-backend.test.ts
+- [X] T020 [P] [US1] Unit tests for store() atomic write behavior in tests/behavior/storage/local-backend.test.ts
+- [X] T021 [P] [US1] Unit tests for retrieve() and error cases in tests/behavior/storage/local-backend.test.ts
+- [X] T022 [P] [US1] Unit tests for delete() and exists() in tests/behavior/storage/local-backend.test.ts
+- [X] T023 [P] [US1] Unit tests for URL generation (both file:// and http:// schemes) in tests/behavior/storage/local-backend.test.ts
+- [X] T024 [US1] Unit tests for orphaned .tmp cleanup in tests/behavior/storage/local-backend.test.ts
+- [X] T024a [US1] Unit test for startup write access validation in tests/behavior/storage/local-backend.test.ts
 
 **Checkpoint**: Run `npm run quality` — All local backend tests pass, no S3 required
 
