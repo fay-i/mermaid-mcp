@@ -87,30 +87,30 @@
 
 ### S3 Backend Wrapper for User Story 2
 
-- [ ] T025 [US2] Create S3StorageBackend class implementing StorageBackend in src/storage/s3-backend.ts
-- [ ] T026 [US2] Implement store() wrapping existing S3Storage.storeArtifact() in src/storage/s3-backend.ts
-- [ ] T027 [P] [US2] Implement retrieve() wrapping existing S3 download in src/storage/s3-backend.ts
-- [ ] T028 [P] [US2] Implement delete() wrapping existing S3 delete in src/storage/s3-backend.ts
-- [ ] T029 [P] [US2] Implement exists() using S3 HeadObject in src/storage/s3-backend.ts
-- [ ] T030 [US2] Implement getType() returning 's3' in src/storage/s3-backend.ts
-- [ ] T031 [US2] Map S3 errors to StorageError codes in src/storage/s3-backend.ts
+- [X] T025 [US2] Create S3StorageBackend class implementing StorageBackend in src/storage/s3-backend.ts
+- [X] T026 [US2] Implement store() wrapping existing S3Storage.storeArtifact() in src/storage/s3-backend.ts
+- [X] T027 [P] [US2] Implement retrieve() wrapping existing S3 download in src/storage/s3-backend.ts
+- [X] T028 [P] [US2] Implement delete() wrapping existing S3 delete in src/storage/s3-backend.ts
+- [X] T029 [P] [US2] Implement exists() using S3 HeadObject in src/storage/s3-backend.ts
+- [X] T030 [US2] Implement getType() returning 's3' in src/storage/s3-backend.ts
+- [X] T031 [US2] Map S3 errors to StorageError codes in src/storage/s3-backend.ts
 
 ### Factory and Auto-Detection for User Story 2
 
-- [ ] T032 [US2] Create createStorageBackend() factory function in src/storage/factory.ts
-- [ ] T033 [US2] Implement STORAGE_TYPE=local → LocalStorageBackend in src/storage/factory.ts
-- [ ] T034 [US2] Implement STORAGE_TYPE=s3 with credential validation in src/storage/factory.ts
-- [ ] T035 [US2] Implement STORAGE_TYPE=auto with S3 credential detection in src/storage/factory.ts
-- [ ] T036 [US2] Implement auto-detection failure when both configured (FR-011a) in src/storage/factory.ts
-- [ ] T037 [US2] Add startup logging for selected backend (FR-009) in src/storage/factory.ts
-- [ ] T038 [US2] Update src/storage/index.ts to export factory and S3 backend
+- [X] T032 [US2] Create createStorageBackend() factory function in src/storage/factory.ts
+- [X] T033 [US2] Implement STORAGE_TYPE=local → LocalStorageBackend in src/storage/factory.ts
+- [X] T034 [US2] Implement STORAGE_TYPE=s3 with credential validation in src/storage/factory.ts
+- [X] T035 [US2] Implement STORAGE_TYPE=auto with S3 credential detection in src/storage/factory.ts
+- [X] T036 [US2] Implement auto-detection failure when both configured (FR-011a) in src/storage/factory.ts
+- [X] T037 [US2] Add startup logging for selected backend (FR-009) in src/storage/factory.ts
+- [X] T038 [US2] Update src/storage/index.ts to export factory and S3 backend
 
 ### Tests for User Story 2
 
-- [ ] T039 [P] [US2] Unit tests for S3StorageBackend interface compliance in tests/behavior/storage/s3-backend.test.ts
-- [ ] T040 [P] [US2] Unit tests for factory backend selection in tests/behavior/storage/factory.test.ts
-- [ ] T041 [P] [US2] Unit tests for auto-detection logic in tests/behavior/storage/factory.test.ts
-- [ ] T042 [US2] Integration test: S3 backward compatibility in tests/behavior/storage/s3-tool-integration.test.ts
+- [X] T039 [P] [US2] Unit tests for S3StorageBackend interface compliance in tests/behavior/storage/s3-backend.test.ts
+- [X] T040 [P] [US2] Unit tests for factory backend selection in tests/behavior/storage/factory.test.ts
+- [X] T041 [P] [US2] Unit tests for auto-detection logic in tests/behavior/storage/factory.test.ts
+- [X] T042 [US2] Integration test: S3 backward compatibility in tests/behavior/storage/s3-tool-integration.test.ts
   - Verify: mermaid_to_svg with S3 returns presigned URL (format unchanged)
   - Verify: S3 artifact key format unchanged ({artifact_id}.{ext})
   - Verify: Presigned URL expiration behavior unchanged

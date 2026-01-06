@@ -39,3 +39,7 @@ export {
 export { loadStorageConfig } from "./config.js";
 
 export { LocalStorageBackend } from "./local-backend.js";
+
+export { S3StorageBackend } from "./s3-backend.js";
+
+export { createStorageBackend } from "./factory.js";

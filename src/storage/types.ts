@@ -57,6 +57,13 @@ export interface StorageResult {
  */
 export interface StorageBackend {
   /**
+   * Initialize the storage backend.
+   * - For local storage: validates write access and cleans up orphaned files
+   * - For S3 storage: no-op
+   */
+  initialize(): Promise<void>;
+
+  /**
    * Store an artifact and return download URL.
    * @param sessionId - UUID for session grouping
    * @param artifactId - UUID for artifact identification
