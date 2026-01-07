@@ -5,7 +5,8 @@
 
 /**
  * Artifact identifier parsed from URL path.
- * Format: /artifacts/{artifactId}.{extension}
+ * Format: /artifacts/{artifactId}.{extension} (S3)
+ * Format: /artifacts/{sessionId}/{artifactId}.{extension} (local)
  */
 export interface ArtifactRef {
   /** UUID of the artifact (e.g., "abc123-def456-...") */
@@ -13,6 +14,9 @@ export interface ArtifactRef {
 
   /** File extension determining content type */
   extension: "svg" | "pdf";
+
+  /** Session ID for local storage (optional, only for local storage paths) */
+  sessionId?: string;
 }
 
 /**
@@ -96,6 +100,9 @@ export interface HealthStatus {
   /** S3/MinIO connectivity status */
   s3_connected: boolean;
 
+  /** Storage backend type */
+  storage_type?: "local" | "s3" | "unknown";
+
   /** Cache statistics (if caching enabled) - snake_case per API contract */
   cache?: CacheStatsResponse;
 
@@ -110,10 +117,11 @@ export interface HealthStatus {
  * Error codes for CDN proxy responses.
  */
 export type CdnErrorCode =
-  | "ARTIFACT_NOT_FOUND" // 404: S3 key does not exist
+  | "ARTIFACT_NOT_FOUND" // 404: Artifact does not exist
   | "INVALID_PATH" // 400: URL path malformed
   | "S3_ERROR" // 502: S3 returned an error
   | "NOT_CONFIGURED" // 503: S3 credentials not configured
+  | "PERMISSION_DENIED" // 403: File access denied
   | "INTERNAL_ERROR"; // 500: Unexpected server error
 
 /**
@@ -178,6 +186,11 @@ export interface RequestLogEntry {
 }
 
 /**
+ * Storage backend type for CDN proxy
+ */
+export type StorageBackendType = "local" | "s3" | "unknown";
+
+/**
  * CDN Proxy configuration loaded from environment.
  */
 export interface CdnProxyConfig {
@@ -198,6 +211,12 @@ export interface CdnProxyConfig {
 
   /** S3 configuration */
   s3: S3ConfigResult;
+
+  /** Detected storage backend type */
+  storageType: StorageBackendType;
+
+  /** Local storage base path (if using local storage) */
+  localStoragePath?: string;
 }
 
 /**

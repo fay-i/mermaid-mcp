@@ -1,7 +1,7 @@
 /**
  * S3 Storage Backend Implementation
  * Feature: 010-local-disk-storage
- * 
+ *
  * Wraps existing S3Storage to conform to StorageBackend interface.
  */
 
@@ -47,7 +47,7 @@ function validateUUID(id: string, fieldName: string): void {
 /**
  * Get file extension from content type
  */
-function getExtension(
+function _getExtension(
   contentType: "image/svg+xml" | "application/pdf",
 ): string {
   return contentType === "image/svg+xml" ? "svg" : "pdf";
@@ -64,7 +64,7 @@ export class S3StorageBackend implements StorageBackend {
 
   constructor(config: S3StorageConfig) {
     this.config = config;
-    
+
     // Create S3Storage instance for upload operations
     this.s3Storage = new S3Storage({
       endpoint: config.endpoint,
@@ -140,10 +140,7 @@ export class S3StorageBackend implements StorageBackend {
     // S3 keys don't use sessionId (backward compatibility)
     // Format: {artifact_id}.{ext}
     // We need to check both .svg and .pdf extensions
-    const keys = [
-      `${artifactId}.svg`,
-      `${artifactId}.pdf`,
-    ];
+    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
 
     for (const key of keys) {
       try {
@@ -190,10 +187,7 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(artifactId, "artifactId");
 
     // Check both extensions
-    const keys = [
-      `${artifactId}.svg`,
-      `${artifactId}.pdf`,
-    ];
+    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
 
     let found = false;
     for (const key of keys) {
@@ -239,10 +233,7 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(artifactId, "artifactId");
 
     // Check both extensions
-    const keys = [
-      `${artifactId}.svg`,
-      `${artifactId}.pdf`,
-    ];
+    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
 
     for (const key of keys) {
       try {

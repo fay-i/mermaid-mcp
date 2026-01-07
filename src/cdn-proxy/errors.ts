@@ -14,6 +14,7 @@ const ERROR_STATUS_MAP: Record<CdnErrorCode, number> = {
   INVALID_PATH: 400,
   S3_ERROR: 502,
   NOT_CONFIGURED: 503,
+  PERMISSION_DENIED: 403,
   INTERNAL_ERROR: 500,
 };
 
@@ -25,6 +26,7 @@ const ERROR_MESSAGES: Record<CdnErrorCode, string> = {
   INVALID_PATH: "Invalid artifact path format",
   S3_ERROR: "Failed to retrieve artifact from storage",
   NOT_CONFIGURED: "S3 storage is not configured",
+  PERMISSION_DENIED: "Permission denied accessing artifact",
   INTERNAL_ERROR: "An unexpected error occurred",
 };
 

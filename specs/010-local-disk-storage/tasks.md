@@ -119,12 +119,12 @@
 
 ### Tool Updates for User Story 2
 
-- [ ] T043 [US2] Update src/index.ts to use createStorageBackend() factory
-- [ ] T044 [US2] Refactor src/tools/mermaid-to-svg.ts to accept StorageBackend parameter
-- [ ] T045 [P] [US2] Refactor src/tools/mermaid-to-pdf.ts to accept StorageBackend parameter
-- [ ] T046 [P] [US2] Refactor src/tools/mermaid-to-deck.ts to accept StorageBackend parameter
-- [ ] T047 [US2] Add storage_type field to tool responses in src/schemas/artifact-output.ts
-- [ ] T048 [US2] Integration test: mermaid_to_svg with LocalStorageBackend → file:// URL
+- [X] T043 [US2] Update src/index.ts to use createStorageBackend() factory
+- [X] T044 [US2] Refactor src/tools/mermaid-to-svg.ts to accept StorageBackend parameter
+- [X] T045 [P] [US2] Refactor src/tools/mermaid-to-pdf.ts to accept StorageBackend parameter
+- [X] T046 [P] [US2] Refactor src/tools/mermaid-to-deck.ts to accept StorageBackend parameter
+- [X] T047 [US2] Add storage_type field to tool responses in src/schemas/artifact-output.ts
+- [X] T048 [US2] Integration test: mermaid_to_svg with LocalStorageBackend → file:// URL
 
 **Checkpoint**: Run `npm run quality` — All tests pass, both backends work, tools use abstraction
 
@@ -140,28 +140,28 @@
 
 ### CDN Proxy Local File Support for User Story 3
 
-- [ ] T049 [US3] Create local file fetcher in src/cdn-proxy/local-fetcher.ts
-- [ ] T050 [US3] Implement GET handler for local file requests in src/cdn-proxy/handlers/local-file-handler.ts
-- [ ] T051 [US3] Map URL path to filesystem path with validation in src/cdn-proxy/handlers/local-file-handler.ts
-- [ ] T052 [US3] Implement streaming file response in src/cdn-proxy/handlers/local-file-handler.ts (ignore Range headers per FR-013a, always return full content with 200 OK)
-- [ ] T053 [P] [US3] Add Content-Type detection from file extension in src/cdn-proxy/handlers/local-file-handler.ts
-- [ ] T054 [P] [US3] Add error handling (404, 403, 500) in src/cdn-proxy/handlers/local-file-handler.ts
-- [ ] T054a [US3] Verify Range header requests return 200 OK (not 206 Partial) - ignore range headers, return full content
+- [X] T049 [US3] Create local file fetcher in src/cdn-proxy/local-fetcher.ts
+- [X] T050 [US3] Implement GET handler for local file requests in src/cdn-proxy/handlers/local-file-handler.ts
+- [X] T051 [US3] Map URL path to filesystem path with validation in src/cdn-proxy/handlers/local-file-handler.ts
+- [X] T052 [US3] Implement streaming file response in src/cdn-proxy/handlers/local-file-handler.ts (ignore Range headers per FR-013a, always return full content with 200 OK)
+- [X] T053 [P] [US3] Add Content-Type detection from file extension in src/cdn-proxy/handlers/local-file-handler.ts
+- [X] T054 [P] [US3] Add error handling (404, 403, 500) in src/cdn-proxy/handlers/local-file-handler.ts
+- [X] T054a [US3] Verify Range header requests return 200 OK (not 206 Partial) - ignore range headers, return full content
 
 ### CDN Proxy Router Updates for User Story 3
 
-- [ ] T055 [US3] Add storage backend detection to CDN proxy startup in src/cdn-proxy/config.ts
-- [ ] T056 [US3] Update src/cdn-proxy/router.ts to route based on storage_type
-- [ ] T057 [US3] Add X-Storage-Backend header to responses in src/cdn-proxy/router.ts
-- [ ] T058 [US3] Update health check to report storage type in src/cdn-proxy/handlers/health.ts
+- [X] T055 [US3] Add storage backend detection to CDN proxy startup in src/cdn-proxy/config.ts
+- [X] T056 [US3] Update src/cdn-proxy/router.ts to route based on storage_type
+- [X] T057 [US3] Add X-Storage-Backend header to responses in src/cdn-proxy/router.ts
+- [X] T058 [US3] Update health check to report storage type in src/cdn-proxy/handlers/health.ts
 
 ### Tests for User Story 3
 
-- [ ] T059 [P] [US3] Unit tests for local file handler in tests/behavior/cdn-proxy/local-file-handler.test.ts
-- [ ] T059a [P] [US3] Unit test: Range header ignored, full content returned with 200 OK
-- [ ] T060 [P] [US3] Unit tests for routing logic in tests/behavior/cdn-proxy/router.test.ts
-- [ ] T061 [US3] Integration test: CDN proxy serves local files correctly
-- [ ] T062 [US3] Integration test: CDN proxy serves S3 files correctly (existing behavior)
+- [X] T059 [P] [US3] Unit tests for local file handler in tests/behavior/cdn-proxy/local-file-handler.test.ts
+- [X] T059a [P] [US3] Unit test: Range header ignored, full content returned with 200 OK
+- [X] T060 [P] [US3] Unit tests for routing logic in tests/behavior/cdn-proxy/router.test.ts
+- [X] T061 [US3] Integration test: CDN proxy serves local files correctly
+- [X] T062 [US3] Integration test: CDN proxy serves S3 files correctly (existing behavior)
 
 **Checkpoint**: Run `npm run quality` — CDN proxy works with both backends
 

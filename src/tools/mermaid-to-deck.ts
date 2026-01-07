@@ -24,7 +24,7 @@ import type {
 } from "../schemas/deck-response.js";
 import { renderDeck, type DeckRenderOptions } from "./deck-renderer.js";
 import { assembleDeck, buildPageMetadata } from "../renderer/deck-assembler.js";
-import type { S3Storage } from "../storage/index.js";
+import type { S3Storage, StorageBackend } from "../storage/index.js";
 import { getCdnBaseUrl, buildCdnUrl } from "./cdn-url.js";
 import type { ToolConfig } from "./types.js";
 
@@ -294,6 +294,7 @@ export async function mermaidToDeckS3(
     artifact_id: artifact.artifact_id,
     download_url: artifact.download_url,
     curl_command: curlCommand,
+    storage_type: "s3",
     s3: artifact.s3,
     expires_in_seconds: artifact.expires_in_seconds,
     content_type: "application/pdf",
@@ -313,6 +314,190 @@ export async function mermaidToDeckS3(
   structuredLog("info", correlationId, "Deck generation completed", {
     requestId,
     artifactId: artifact.artifact_id,
+    pageCount: deckResult.pageCount,
+    sizeBytes: deckResult.sizeBytes,
+  });
+
+  return response;
+}
+
+/**
+ * MCP tool handler: mermaid_to_deck with StorageBackend.
+ * Generates a multi-page PDF deck from multiple Mermaid diagrams.
+ *
+ * @param input - Tool input parameters
+ * @param storage - StorageBackend instance (local or S3)
+ * @param sessionId - Session identifier for artifact grouping (optional, generates default if not provided)
+ * @returns Deck response with download URL or error
+ */
+export async function mermaidToDeckWithStorage(
+  input: DeckRequest,
+  storage: StorageBackend,
+  sessionId?: string,
+): Promise<DeckResponse> {
+  const requestId = randomUUID();
+  const correlationId = generateCorrelationId();
+  const artifactSessionId = sessionId ?? randomUUID(); // Generate default session if not provided
+
+  structuredLog("info", correlationId, "Deck generation started", {
+    requestId,
+    diagramCount: input.diagrams.length,
+    pageSize: input.page_size,
+    orientation: input.orientation,
+  });
+
+  // 1. Validate diagrams
+  const diagramsError = validateDiagrams(input.diagrams);
+  if (diagramsError) {
+    structuredLog("error", correlationId, "Validation failed", {
+      requestId,
+      error: diagramsError,
+    });
+    return createErrorResponse(requestId, diagramsError);
+  }
+
+  // 2. Validate timeout
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    structuredLog("error", correlationId, "Invalid timeout", {
+      requestId,
+      error: timeoutError,
+    });
+    return createErrorResponse(requestId, timeoutError);
+  }
+
+  // 3. Build render options
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const margins = input.margins ?? DEFAULT_MARGINS;
+  const { width, height } = getPageDimensions(
+    input.page_size,
+    input.orientation,
+  );
+
+  const renderOptions: DeckRenderOptions = {
+    diagrams: input.diagrams,
+    pageOptions: {
+      width,
+      height,
+      margins,
+      background: input.background,
+      showTitle: input.show_titles,
+    },
+    theme: input.theme,
+    dropShadow: input.drop_shadow,
+    googleFont: input.google_font,
+    timeoutMs,
+  };
+
+  // 4. Render all diagrams to PDF pages
+  structuredLog("info", correlationId, "Starting diagram rendering", {
+    requestId,
+    diagramCount: input.diagrams.length,
+  });
+
+  const renderResult = await renderDeck(renderOptions);
+
+  if ("error" in renderResult) {
+    structuredLog("error", correlationId, "Rendering failed", {
+      requestId,
+      error: renderResult.error,
+    });
+    return createErrorResponse(requestId, renderResult.error);
+  }
+
+  // 5. Assemble PDF deck
+  structuredLog("info", correlationId, "Assembling PDF deck", {
+    requestId,
+    pageCount: renderResult.pageBuffers.length,
+  });
+
+  let deckResult: Awaited<ReturnType<typeof assembleDeck>>;
+  try {
+    deckResult = await assembleDeck(renderResult.pageBuffers);
+  } catch (error) {
+    const assemblyError: DeckRenderError = {
+      code: "PDF_GENERATION_FAILED",
+      message: `Failed to assemble PDF deck: ${error instanceof Error ? error.message : String(error)}`,
+    };
+    structuredLog("error", correlationId, "PDF assembly failed", {
+      requestId,
+      error: assemblyError,
+    });
+    return createErrorResponse(requestId, assemblyError);
+  }
+
+  // 6. Store using StorageBackend
+  structuredLog("info", correlationId, "Storing artifact", {
+    requestId,
+    sizeBytes: deckResult.sizeBytes,
+    storageType: storage.getType(),
+  });
+
+  let storageResult: Awaited<ReturnType<typeof storage.store>>;
+  try {
+    const artifactId = randomUUID();
+    storageResult = await storage.store(
+      artifactSessionId,
+      artifactId,
+      deckResult.pdfBuffer,
+      "application/pdf",
+    );
+  } catch (error) {
+    const storageError: DeckRenderError = {
+      code: "STORAGE_FAILED",
+      message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
+    };
+    structuredLog("error", correlationId, "Storage failed", {
+      requestId,
+      error: storageError,
+    });
+    return createErrorResponse(requestId, storageError);
+  }
+
+  // 7. Build success response
+  const pages = buildPageMetadata(input.diagrams);
+  const outputFile = `${storageResult.artifact_id}.pdf`;
+  const escapedUrl = storageResult.download_url.replace(/'/g, "'\\''");
+  const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
+
+  const response: DeckSuccessResponse = {
+    ok: true,
+    request_id: requestId,
+    artifact_id: storageResult.artifact_id,
+    download_url: storageResult.download_url,
+    curl_command: curlCommand,
+    storage_type: storageResult.storage_type,
+    content_type: "application/pdf", // Decks are always PDFs
+    size_bytes: storageResult.size_bytes,
+    page_count: deckResult.pageCount,
+    pages,
+    warnings: [],
+    errors: [],
+  };
+
+  // Add S3-specific fields if S3 storage
+  if (storageResult.storage_type === "s3") {
+    if (storageResult.s3) {
+      response.s3 = storageResult.s3;
+    }
+    if (storageResult.expires_in_seconds !== undefined) {
+      response.expires_in_seconds = storageResult.expires_in_seconds;
+    }
+  }
+
+  // Conditionally add CDN URL
+  const cdnBaseUrl = getCdnBaseUrl();
+  if (cdnBaseUrl) {
+    response.cdn_url = buildCdnUrl(
+      cdnBaseUrl,
+      storageResult.artifact_id,
+      "pdf",
+    );
+  }
+
+  structuredLog("info", correlationId, "Deck generation completed", {
+    requestId,
+    artifactId: storageResult.artifact_id,
     pageCount: deckResult.pageCount,
     sizeBytes: deckResult.sizeBytes,
   });

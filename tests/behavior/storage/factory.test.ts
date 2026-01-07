@@ -1,7 +1,7 @@
 /**
  * Storage Factory Tests
  * Feature: 010-local-disk-storage
- * 
+ *
  * Tests backend selection logic and auto-detection.
  */
 
@@ -184,7 +184,9 @@ describe("Storage Factory", () => {
       await createStorageBackend();
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[StorageFactory] Auto-detected backend: Local"),
+        expect.stringContaining(
+          "[StorageFactory] Auto-detected backend: Local",
+        ),
       );
       consoleSpy.mockRestore();
     });

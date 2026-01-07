@@ -179,6 +179,7 @@ export async function handleArtifact(
     "X-Artifact-Id": artifact.artifactId,
     "X-Cache": cacheStatus.toUpperCase(),
     "X-Request-Id": ctx.requestId,
+    "X-Storage-Backend": "s3",
   };
 
   // Include ETag if available

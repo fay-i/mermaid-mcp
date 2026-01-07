@@ -1,7 +1,7 @@
 /**
  * S3 Storage Backend Tests
  * Feature: 010-local-disk-storage
- * 
+ *
  * Tests S3StorageBackend interface compliance and error mapping.
  * Note: These tests validate interface and error handling without requiring actual S3.
  */
@@ -87,33 +87,33 @@ describe("S3StorageBackend", () => {
     });
 
     it("should throw InvalidArtifactIdError for invalid artifact UUID in retrieve()", async () => {
-      await expect(
-        backend.retrieve(sessionId, "invalid-uuid"),
-      ).rejects.toThrow(InvalidArtifactIdError);
+      await expect(backend.retrieve(sessionId, "invalid-uuid")).rejects.toThrow(
+        InvalidArtifactIdError,
+      );
     });
 
     it("should throw InvalidSessionIdError for invalid session UUID in delete()", async () => {
-      await expect(
-        backend.delete("invalid-uuid", artifactId),
-      ).rejects.toThrow(InvalidSessionIdError);
+      await expect(backend.delete("invalid-uuid", artifactId)).rejects.toThrow(
+        InvalidSessionIdError,
+      );
     });
 
     it("should throw InvalidArtifactIdError for invalid artifact UUID in delete()", async () => {
-      await expect(
-        backend.delete(sessionId, "invalid-uuid"),
-      ).rejects.toThrow(InvalidArtifactIdError);
+      await expect(backend.delete(sessionId, "invalid-uuid")).rejects.toThrow(
+        InvalidArtifactIdError,
+      );
     });
 
     it("should throw InvalidSessionIdError for invalid session UUID in exists()", async () => {
-      await expect(
-        backend.exists("invalid-uuid", artifactId),
-      ).rejects.toThrow(InvalidSessionIdError);
+      await expect(backend.exists("invalid-uuid", artifactId)).rejects.toThrow(
+        InvalidSessionIdError,
+      );
     });
 
     it("should throw InvalidArtifactIdError for invalid artifact UUID in exists()", async () => {
-      await expect(
-        backend.exists(sessionId, "invalid-uuid"),
-      ).rejects.toThrow(InvalidArtifactIdError);
+      await expect(backend.exists(sessionId, "invalid-uuid")).rejects.toThrow(
+        InvalidArtifactIdError,
+      );
     });
 
     it("should validate path traversal prevention", async () => {
@@ -152,7 +152,12 @@ describe("S3StorageBackend", () => {
       ).not.toThrow(TypeError);
 
       expect(() =>
-        backend.store(testSession, testArtifact, testContent, "application/pdf"),
+        backend.store(
+          testSession,
+          testArtifact,
+          testContent,
+          "application/pdf",
+        ),
       ).not.toThrow(TypeError);
     });
 

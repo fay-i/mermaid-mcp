@@ -1,7 +1,7 @@
 /**
  * Storage Backend Factory
  * Feature: 010-local-disk-storage
- * 
+ *
  * Creates storage backend instances based on configuration.
  */
 
@@ -13,7 +13,7 @@ import type { StorageBackend, StorageConfig } from "./types.js";
 
 /**
  * Create and initialize a storage backend based on environment configuration.
- * 
+ *
  * Selection logic:
  * - STORAGE_TYPE=local: Use LocalStorageBackend (requires CONTAINER_STORAGE_PATH)
  * - STORAGE_TYPE=s3: Use S3StorageBackend (requires S3 credentials)
@@ -22,7 +22,7 @@ import type { StorageBackend, StorageConfig } from "./types.js";
  *   - If only S3 config → S3StorageBackend
  *   - If both configured → Error (FR-011a)
  *   - If neither configured → Error
- * 
+ *
  * @returns Initialized StorageBackend instance
  * @throws ConfigurationError if configuration is invalid or ambiguous
  */
@@ -99,13 +99,13 @@ function createS3Backend(config: StorageConfig): StorageBackend {
 
 /**
  * Auto-detect storage backend based on available configuration.
- * 
+ *
  * Rules:
  * - Only local configured → LocalStorageBackend
  * - Only S3 configured → S3StorageBackend
  * - Both configured → Error (FR-011a: ambiguity must be resolved explicitly)
  * - Neither configured → Error
- * 
+ *
  * @throws ConfigurationError if auto-detection is ambiguous
  */
 function autoDetectBackend(config: StorageConfig): StorageBackend {
@@ -122,18 +122,26 @@ function autoDetectBackend(config: StorageConfig): StorageBackend {
 
   // Only local configured
   if (hasLocal && !hasS3) {
+    const localConfig = config.local;
+    if (!localConfig) {
+      throw new ConfigurationError("Local config is unexpectedly undefined");
+    }
     console.log(
-      `[StorageFactory] Auto-detected backend: Local (path: ${config.local!.basePath})`,
+      `[StorageFactory] Auto-detected backend: Local (path: ${localConfig.basePath})`,
     );
-    return new LocalStorageBackend(config.local!);
+    return new LocalStorageBackend(localConfig);
   }
 
   // Only S3 configured
   if (!hasLocal && hasS3) {
+    const s3Config = config.s3;
+    if (!s3Config) {
+      throw new ConfigurationError("S3 config is unexpectedly undefined");
+    }
     console.log(
-      `[StorageFactory] Auto-detected backend: S3 (bucket: ${config.s3!.bucket}, region: ${config.s3!.region})`,
+      `[StorageFactory] Auto-detected backend: S3 (bucket: ${s3Config.bucket}, region: ${s3Config.region})`,
     );
-    return new S3StorageBackend(config.s3!);
+    return new S3StorageBackend(s3Config);
   }
 
   // Neither configured

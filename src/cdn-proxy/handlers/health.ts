@@ -17,6 +17,7 @@ export interface HealthHandlerDeps {
   s3Fetcher: S3Fetcher | null;
   cache: ArtifactCache | null;
   getUptimeSeconds: () => number;
+  storageType?: "local" | "s3" | "unknown";
 }
 
 /**
@@ -34,9 +35,10 @@ export async function handleHealth(
   }
 
   const response: HealthStatus = {
-    ok: s3Connected,
+    ok: s3Connected || deps.storageType === "local",
     service: "cdn-proxy",
     s3_connected: s3Connected,
+    storage_type: deps.storageType || "unknown",
     uptime_seconds: deps.getUptimeSeconds(),
     timestamp: new Date().toISOString(),
   };

@@ -71,6 +71,46 @@ function parseBoolEnv(
 }
 
 /**
+ * Detect storage backend type from environment variables.
+ * Uses the same logic as storage factory for consistency.
+ */
+function detectStorageType(): "local" | "s3" | "unknown" {
+  const storageType = process.env.STORAGE_TYPE || "auto";
+
+  // Check for explicit type
+  if (storageType === "local") {
+    return "local";
+  }
+  if (storageType === "s3") {
+    return "s3";
+  }
+
+  // Auto-detect: check for S3 credentials
+  const hasS3 =
+    process.env.MERMAID_S3_ENDPOINT &&
+    process.env.MERMAID_S3_BUCKET &&
+    process.env.MERMAID_S3_ACCESS_KEY &&
+    process.env.MERMAID_S3_SECRET_KEY;
+
+  // Check for local storage path
+  const hasLocal = !!process.env.CONTAINER_STORAGE_PATH;
+
+  if (hasS3 && !hasLocal) {
+    return "s3";
+  }
+  if (hasLocal && !hasS3) {
+    return "local";
+  }
+  if (hasS3 && hasLocal) {
+    // Ambiguous - return unknown, will be handled by storage factory
+    return "unknown";
+  }
+
+  // Neither configured
+  return "unknown";
+}
+
+/**
  * Load CDN Proxy configuration from environment variables.
  */
 export function loadCdnProxyConfig(): CdnProxyConfig {
@@ -103,12 +143,19 @@ export function loadCdnProxyConfig(): CdnProxyConfig {
     "MERMAID_CDN_CACHE_THRESHOLD_MB",
   );
 
+  const s3Config = loadS3Config();
+  const storageType = detectStorageType();
+  const localStoragePath =
+    storageType === "local" ? process.env.CONTAINER_STORAGE_PATH : undefined;
+
   return {
     port,
     cacheEnabled,
     cacheMaxSizeBytes: cacheMaxSizeMb * MB_TO_BYTES,
     cacheTtlMs: cacheTtlHours * HOURS_TO_MS,
     cacheThresholdBytes: cacheThresholdMb * MB_TO_BYTES,
-    s3: loadS3Config(),
+    s3: s3Config,
+    storageType,
+    localStoragePath,
   };
 }
