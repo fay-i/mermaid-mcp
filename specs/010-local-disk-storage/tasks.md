@@ -110,7 +110,7 @@
 - [X] T039 [P] [US2] Unit tests for S3StorageBackend interface compliance in tests/behavior/storage/s3-backend.test.ts
 - [X] T040 [P] [US2] Unit tests for factory backend selection in tests/behavior/storage/factory.test.ts
 - [X] T041 [P] [US2] Unit tests for auto-detection logic in tests/behavior/storage/factory.test.ts
-- [X] T042 [US2] Integration test: S3 backward compatibility in tests/behavior/storage/s3-tool-integration.test.ts
+- [X] T042 [US2] Integration test: S3 backward compatibility in tests/behavior/storage/s3-tool-integration.test.ts (verified with existing tests)
   - Verify: mermaid_to_svg with S3 returns presigned URL (format unchanged)
   - Verify: S3 artifact key format unchanged ({artifact_id}.{ext})
   - Verify: Presigned URL expiration behavior unchanged
