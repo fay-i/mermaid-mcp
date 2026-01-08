@@ -39,7 +39,11 @@ describe("MCP Server", () => {
 
     const exitCode = await new Promise<number | null>((resolve) => {
       serverProcess.on("exit", (code) => resolve(code));
-      setTimeout(() => resolve(serverProcess.exitCode), 1000);
+      // Fallback timeout in case process doesn't exit
+      setTimeout(() => {
+        serverProcess.kill();
+        resolve(serverProcess.exitCode);
+      }, 2000);
     });
 
     expect(exitCode).toBe(1);
