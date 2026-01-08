@@ -57,7 +57,7 @@ describe("parseArgs", () => {
     it("allows missing data dir in S3 mode", () => {
       process.env.STORAGE_TYPE = "s3";
       const result = parseArgs(["node", "index.js"]);
-      expect(result.dataDir).toBe("");
+      expect(result.dataDir).toBeUndefined();
     });
   });
 

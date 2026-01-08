@@ -48,6 +48,24 @@ export class LocalStorageBackend implements StorageBackend {
   }
 
   /**
+   * Structured logging helper for operational observability
+   */
+  private log(
+    level: "info" | "warn" | "error",
+    message: string,
+    context?: Record<string, unknown>,
+  ): void {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      component: "LocalStorage",
+      message,
+      ...context,
+    };
+    console.error(JSON.stringify(logEntry));
+  }
+
+  /**
    * Initialize storage backend
    * - Validates write access
    * - Cleans up orphaned .tmp files
@@ -71,9 +89,9 @@ export class LocalStorageBackend implements StorageBackend {
     try {
       await writeFile(testFile, "test", "utf-8");
       await rm(testFile);
-      console.error(
-        `[LocalStorage] Write access validated: ${this.config.basePath}`,
-      );
+      this.log("info", "Write access validated", {
+        basePath: this.config.basePath,
+      });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "EACCES") {
         throw new StoragePermissionError(
@@ -116,22 +134,23 @@ export class LocalStorageBackend implements StorageBackend {
             }
           }
         } catch (error) {
-          console.warn(
-            `[LocalStorage] Failed to clean session ${sessionPath}: ${(error as Error).message}`,
-          );
+          this.log("warn", "Failed to clean session", {
+            sessionPath,
+            error: (error as Error).message,
+          });
         }
       }
 
       if (cleanedCount > 0) {
-        console.error(
-          `[LocalStorage] Cleaned up ${cleanedCount} orphaned .tmp files`,
-        );
+        this.log("info", "Cleaned up orphaned temp files", {
+          cleanedCount,
+        });
       }
     } catch (error) {
       // Log but don't fail startup if cleanup fails
-      console.warn(
-        `[LocalStorage] Failed to clean up temp files: ${(error as Error).message}`,
-      );
+      this.log("warn", "Failed to clean up temp files", {
+        error: (error as Error).message,
+      });
     }
   }
 

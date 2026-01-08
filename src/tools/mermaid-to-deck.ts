@@ -157,10 +157,18 @@ function structuredLog(
 }
 
 /**
+ * Minimum required fields from storage result
+ */
+interface StorageResultBase {
+  artifact_id: string;
+  download_url: string;
+}
+
+/**
  * Common deck generation pipeline.
  * Extracts the shared workflow logic from mermaidToDeckS3 and mermaidToDeckWithStorage.
  */
-async function runDeckPipeline<TStorageResult>(
+async function runDeckPipeline<TStorageResult extends StorageResultBase>(
   input: DeckRequest,
   requestId: string,
   correlationId: string,
@@ -293,8 +301,8 @@ async function runDeckPipeline<TStorageResult>(
 
   // 7. Build success response
   const pages = buildPageMetadata(input.diagrams);
-  const artifactId = (storageResult as { artifact_id: string }).artifact_id;
-  const downloadUrl = (storageResult as { download_url: string }).download_url;
+  const artifactId = storageResult.artifact_id;
+  const downloadUrl = storageResult.download_url;
   const outputFile = `${artifactId}.pdf`;
   const escapedUrl = downloadUrl.replace(/'/g, "'\\''");
   const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;

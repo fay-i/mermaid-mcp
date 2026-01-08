@@ -370,7 +370,7 @@ GET /artifacts/{sessionId}/{artifactId}.{ext}
 - Proxy to client
 
 **Response Headers**:
-```
+```http
 Content-Type: image/svg+xml | application/pdf
 Content-Length: {size_bytes}
 Cache-Control: public, max-age=31536000

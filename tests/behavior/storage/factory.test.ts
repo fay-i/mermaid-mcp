@@ -235,9 +235,19 @@ describe("Storage Factory", () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("[StorageFactory] Selected backend: Local"),
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[LocalStorage] Write access validated"),
-      );
+      // LocalStorage now uses structured logging (JSON format)
+      const structuredLog = consoleSpy.mock.calls.find((call) => {
+        try {
+          const parsed = JSON.parse(call[0] as string);
+          return (
+            parsed.component === "LocalStorage" &&
+            parsed.message === "Write access validated"
+          );
+        } catch {
+          return false;
+        }
+      });
+      expect(structuredLog).toBeDefined();
 
       consoleSpy.mockRestore();
     });

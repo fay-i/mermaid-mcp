@@ -4,6 +4,9 @@
  */
 
 import http from "node:http";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 import { loadCdnProxyConfig } from "./config.js";
 import { parseRoute } from "./router.js";
 import { sendError } from "./errors.js";
@@ -228,7 +231,14 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((error) => {
-  console.error("Failed to start CDN proxy:", error);
-  process.exit(1);
-});
+// Only run main() when executed directly, not when imported for testing
+// Use normalized/resolved paths for cross-platform compatibility (Windows, symlinks)
+const currentModulePath = realpathSync(fileURLToPath(import.meta.url));
+const entryPointPath = realpathSync(resolve(process.argv[1]));
+const isMainModule = currentModulePath === entryPointPath;
+if (isMainModule) {
+  main().catch((error) => {
+    console.error("Failed to start CDN proxy:", error);
+    process.exit(1);
+  });
+}

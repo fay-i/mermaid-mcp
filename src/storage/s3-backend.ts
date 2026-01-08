@@ -136,7 +136,7 @@ export class S3StorageBackend implements StorageBackend {
       };
     } catch (error) {
       // Map S3 errors to StorageError codes
-      throw this.mapS3Error(error, "store");
+      throw this.mapS3Error(error, "store", sessionId, artifactId);
     }
   }
 
@@ -153,7 +153,7 @@ export class S3StorageBackend implements StorageBackend {
     try {
       key = await this.findArtifactKey(artifactId);
     } catch (error) {
-      throw this.mapS3Error(error, "retrieve");
+      throw this.mapS3Error(error, "retrieve", sessionId, artifactId);
     }
 
     if (!key) {
@@ -183,7 +183,7 @@ export class S3StorageBackend implements StorageBackend {
 
       return Buffer.concat(chunks);
     } catch (error) {
-      throw this.mapS3Error(error, "retrieve");
+      throw this.mapS3Error(error, "retrieve", sessionId, artifactId);
     }
   }
 
@@ -195,13 +195,21 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Try to delete both possible extensions
+    // Try to find and delete artifact with both possible extensions
     const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
 
     let found = false;
     for (const key of keys) {
       try {
-        // Attempt delete directly without HeadObjectCommand
+        // First verify existence with HeadObjectCommand
+        await this.s3Client.send(
+          new HeadObjectCommand({
+            Bucket: this.config.bucket,
+            Key: key,
+          }),
+        );
+
+        // Object exists, now delete it
         await this.s3Client.send(
           new DeleteObjectCommand({
             Bucket: this.config.bucket,
@@ -217,7 +225,8 @@ export class S3StorageBackend implements StorageBackend {
         if (errorName === "NotFound" || errorName === "NoSuchKey") {
           continue;
         }
-        throw this.mapS3Error(error, "delete");
+        // Other errors are real failures - propagate them
+        throw this.mapS3Error(error, "delete", sessionId, artifactId);
       }
     }
 
@@ -228,22 +237,37 @@ export class S3StorageBackend implements StorageBackend {
 
   /**
    * Check if artifact exists in S3.
-   * Returns false on any S3/network error (aligned with LocalStorageBackend behavior).
+   * Returns false for NotFound errors, throws on operational errors (network, access denied, etc.).
    */
   async exists(sessionId: string, artifactId: string): Promise<boolean> {
     // Validate UUIDs (these still throw validation errors)
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Check both extensions, suppress all operational errors
-    try {
-      const key = await this.findArtifactKey(artifactId);
-      return key !== null;
-    } catch {
-      // Suppress all S3/network errors and return false
-      // This aligns with LocalStorageBackend behavior
-      return false;
+    // Check both extensions
+    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
+
+    for (const key of keys) {
+      try {
+        await this.s3Client.send(
+          new HeadObjectCommand({
+            Bucket: this.config.bucket,
+            Key: key,
+          }),
+        );
+        return true; // Found
+      } catch (error) {
+        // NotFound/NoSuchKey error means try next extension
+        const errorName = (error as { name?: string }).name;
+        if (errorName === "NotFound" || errorName === "NoSuchKey") {
+          continue;
+        }
+        // Other errors are operational failures - propagate them
+        throw this.mapS3Error(error, "exists", sessionId, artifactId);
+      }
     }
+
+    return false; // Not found with any extension
   }
 
   /**
@@ -256,14 +280,19 @@ export class S3StorageBackend implements StorageBackend {
   /**
    * Map S3 errors to StorageError codes
    */
-  private mapS3Error(error: unknown, operation: string): StorageError {
+  private mapS3Error(
+    error: unknown,
+    operation: string,
+    sessionId: string,
+    artifactId: string,
+  ): StorageError {
     const err = error as { name?: string; message?: string; Code?: string };
 
     // Map common S3 errors
     switch (err.name || err.Code) {
       case "NoSuchKey":
       case "NotFound":
-        return new ArtifactNotFoundError("unknown", "unknown");
+        return new ArtifactNotFoundError(sessionId, artifactId);
 
       case "AccessDenied":
       case "Forbidden":

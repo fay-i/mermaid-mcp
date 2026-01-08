@@ -67,6 +67,54 @@ const StorageConfigSchema = BaseStorageConfigSchema.refine(
   );
 
 /**
+ * Validate CDN host to prevent injection attacks.
+ * Ensures the host contains only a hostname or IP (optionally with a port),
+ * with no URL scheme, path, query, or fragment.
+ *
+ * @param host - The host string to validate
+ * @returns The validated host or "localhost" as a safe default
+ */
+function validateCdnHost(host: string | undefined): string {
+  if (!host) {
+    return "localhost";
+  }
+
+  // Check for URL scheme (http://, https://, etc.)
+  if (host.includes("://")) {
+    console.warn(
+      `[Config] CDN_HOST contains URL scheme, using default. Got: ${host}`,
+    );
+    return "localhost";
+  }
+
+  // Check for path, query, or fragment
+  if (host.includes("/") || host.includes("?") || host.includes("#")) {
+    console.warn(
+      `[Config] CDN_HOST contains path/query/fragment, using default. Got: ${host}`,
+    );
+    return "localhost";
+  }
+
+  // Validate hostname/IP format (allow alphanumeric, hyphens, dots, colons for IPv6, and optional port)
+  // This regex allows:
+  // - hostnames: example.com, sub.example.com
+  // - IPv4: 192.168.1.1
+  // - IPv6: [::1], [2001:db8::1]
+  // - with optional port: example.com:8080
+  const validHostPattern =
+    /^(\[[0-9a-fA-F:]+\]|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*)?(:[0-9]{1,5})?$/;
+
+  if (!validHostPattern.test(host)) {
+    console.warn(
+      `[Config] CDN_HOST contains invalid characters, using default. Got: ${host}`,
+    );
+    return "localhost";
+  }
+
+  return host;
+}
+
+/**
  * Load storage configuration from environment variables
  * @returns Validated storage configuration
  * @throws ConfigurationError if configuration is invalid
@@ -111,7 +159,7 @@ export function loadStorageConfig(): StorageConfig {
           hostPath:
             process.env.HOST_STORAGE_PATH || process.env.CONTAINER_STORAGE_PATH,
           urlScheme,
-          cdnHost: process.env.CDN_HOST || "localhost",
+          cdnHost: validateCdnHost(process.env.CDN_HOST),
           cdnPort,
         };
       })()

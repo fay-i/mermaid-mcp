@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { healthcheckTool } from "./tools/index.js";
@@ -21,7 +23,9 @@ import { extractSessionId, type RequestHandlerExtra } from "./cache/session.js";
  * @returns Parsed arguments
  * @throws Error if required arguments are missing
  */
-export function parseArgs(argv: string[] = process.argv): { dataDir: string } {
+export function parseArgs(argv: string[] = process.argv): {
+  dataDir: string | undefined;
+} {
   const args = argv.slice(2);
 
   // Check for help flag
@@ -62,7 +66,7 @@ Examples:
     process.exit(1);
   }
 
-  const dataDir = args[0] ? resolve(args[0]) : "";
+  const dataDir = args[0] ? resolve(args[0]) : undefined;
   return { dataDir };
 }
 
@@ -172,6 +176,9 @@ async function main(): Promise<void> {
       );
     } else {
       // Local mode: use command line argument
+      if (!dataDir) {
+        throw new Error("Data directory is required for local storage mode");
+      }
       const localConfig = {
         basePath: dataDir,
         hostPath: dataDir,
@@ -196,7 +203,10 @@ async function main(): Promise<void> {
 }
 
 // Only run main() when executed directly, not when imported for testing
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+// Use normalized/resolved paths for cross-platform compatibility (Windows, symlinks)
+const currentModulePath = realpathSync(fileURLToPath(import.meta.url));
+const entryPointPath = realpathSync(resolve(process.argv[1]));
+const isMainModule = currentModulePath === entryPointPath;
 if (isMainModule) {
   main().catch((error: unknown) => {
     console.error("Server error:", error);
