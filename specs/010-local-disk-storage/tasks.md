@@ -177,31 +177,31 @@
 
 ### Docker Configuration for User Story 4
 
-- [ ] T063 [US4] Add VOLUME definition to Dockerfile for /app/data/artifacts
-- [ ] T064 [US4] Create docker-compose.yml with local storage example
-- [ ] T065 [P] [US4] Add environment variable comments explaining configuration in docker-compose.yml
-- [ ] T066 [US4] Test Docker build with volume definition
+- [X] T063 [US4] Add VOLUME definition to Dockerfile for /app/data/artifacts
+- [X] T064 [US4] Create docker-compose.yml with local storage example
+- [X] T065 [P] [US4] Add environment variable comments explaining configuration in docker-compose.yml
+- [X] T066 [US4] Test Docker build with volume definition
 
 ### NPM Package Configuration for User Story 4
 
-- [ ] T067 [US4] Add bin configuration for mermaid-mcp CLI in package.json
-- [ ] T068 [P] [US4] Add files array for dist, README, LICENSE in package.json
-- [ ] T069 [P] [US4] Add publishConfig with public access in package.json
-- [ ] T070 [US4] Verify npx execution works locally
+- [X] T067 [US4] Add bin configuration for mermaid-mcp CLI in package.json
+- [X] T068 [P] [US4] Add files array for dist, README, LICENSE in package.json
+- [X] T069 [P] [US4] Add publishConfig with public access in package.json
+- [X] T070 [US4] Verify npx execution works locally
 
 ### Documentation for User Story 4
 
-- [ ] T071 [US4] Update README.md with Docker setup instructions
-- [ ] T072 [P] [US4] Add local development setup instructions to README.md
-- [ ] T073 [P] [US4] Add storage configuration reference to README.md
-- [ ] T074 [P] [US4] Add troubleshooting section to README.md
-- [ ] T075 [US4] Add architecture.mmd exclusion to .gitignore
+- [X] T071 [US4] Update README.md with Docker setup instructions
+- [X] T072 [P] [US4] Add local development setup instructions to README.md
+- [X] T073 [P] [US4] Add storage configuration reference to README.md
+- [X] T074 [P] [US4] Add troubleshooting section to README.md
+- [X] T075 [US4] Add architecture.mmd exclusion to .gitignore
 
 ### Integration Tests for User Story 4
 
-- [ ] T076 [US4] Update scripts/integration-test.sh with local storage tests
-- [ ] T077 [US4] End-to-end test: MCP tool → local storage → artifact retrieval
-- [ ] T078 [US4] End-to-end test: docker-compose up → render → verify artifact
+- [X] T076 [US4] Update scripts/integration-test.sh with local storage tests
+- [X] T077 [US4] End-to-end test: MCP tool → local storage → artifact retrieval
+- [X] T078 [US4] End-to-end test: docker-compose up → render → verify artifact
 
 **Checkpoint**: Run `npm run quality` — Documentation complete, Docker works, package ready
 
@@ -213,14 +213,14 @@
 
 **Purpose**: Final validation, cleanup, and architecture documentation
 
-- [ ] T079 Review all changes for consistency and code style
-- [ ] T080 [P] Verify test coverage >90% for storage module
-- [ ] T081 [P] Add JSDoc comments to all public interfaces
-- [ ] T082 Run full quality gate from clean slate (npm run clean && npm install && npm run quality)
-- [ ] T083 Run quickstart.md validation scenarios manually
+- [X] T079 Review all changes for consistency and code style
+- [X] T080 [P] Verify test coverage >90% for storage module
+- [X] T081 [P] Add JSDoc comments to all public interfaces
+- [X] T082 Run full quality gate from clean slate (npm run clean && npm install && npm run quality)
+- [X] T083 Run quickstart.md validation scenarios manually
 - [ ] T084 Generate architecture.mmd using MCP server itself (self-test)
-- [ ] T085 Security review: verify path traversal prevention
-- [ ] T086 Performance validation: local storage <100ms for <1MB files
+- [X] T085 Security review: verify path traversal prevention
+- [X] T086 Performance validation: local storage <100ms for <1MB files
 
 **Checkpoint**: Run `npm run quality` — All checks pass, feature complete
 

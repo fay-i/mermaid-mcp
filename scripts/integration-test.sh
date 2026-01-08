@@ -18,7 +18,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVER_CMD="node dist/index.js"
+
+# Create temp directory for test artifacts
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
+SERVER_CMD="node dist/index.js $TEMP_DIR"
 
 # Colors for output
 RED='\033[0;31m'
@@ -181,7 +186,9 @@ log_info "Test: mermaid_to_svg - Basic flowchart rendering"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;")
 assert_contains "$output" 'ok\\": true' "returns ok=true"
 assert_contains "$output" 'request_id\\":' "returns request_id"
-assert_contains "$output" '<svg' "returns SVG content"
+assert_contains "$output" 'artifact_id\\":' "returns artifact_id"
+assert_contains "$output" 'download_url\\":' "returns download_url"
+assert_contains "$output" 'storage_type\\": \\"local' "returns storage_type=local"
 
 echo ""
 
@@ -203,60 +210,60 @@ log_info "Test: mermaid_to_svg - Theme parameter"
 
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B;" --tool-arg "theme=dark")
 assert_contains "$output" 'ok\\": true' "renders with dark theme"
-assert_contains "$output" '<svg' "returns SVG content with theme"
+assert_contains "$output" 'download_url\\":' "returns download_url with theme"
 
 echo ""
 
 # ----------------------------------------------------------------------------
 # Test: mermaid_to_svg - All 8 diagram types (T037)
-# Note: Using "<svg" as assertion since it's simpler to grep in multiline output
+# Note: Checking for download_url since artifacts are stored, not inlined
 # ----------------------------------------------------------------------------
 log_info "Test: mermaid_to_svg - Flowchart diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; A-->B-->C;")
-assert_contains "$output" '<svg' "flowchart renders successfully"
+assert_contains "$output" 'download_url\\":' "flowchart renders successfully"
 
 log_info "Test: mermaid_to_svg - Sequence diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=sequenceDiagram
     Alice->>Bob: Hello
     Bob-->>Alice: Hi")
-assert_contains "$output" '<svg' "sequence diagram renders successfully"
+assert_contains "$output" 'download_url\\":' "sequence diagram renders successfully"
 
 log_info "Test: mermaid_to_svg - Class diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=classDiagram
     Animal <|-- Duck
     Animal : +int age")
-assert_contains "$output" '<svg' "class diagram renders successfully"
+assert_contains "$output" 'download_url\\":' "class diagram renders successfully"
 
 log_info "Test: mermaid_to_svg - State diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=stateDiagram-v2
     [*] --> Still
     Still --> Moving")
-assert_contains "$output" '<svg' "state diagram renders successfully"
+assert_contains "$output" 'download_url\\":' "state diagram renders successfully"
 
 log_info "Test: mermaid_to_svg - ER diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=erDiagram
     CUSTOMER ||--o{ ORDER : places")
-assert_contains "$output" '<svg' "ER diagram renders successfully"
+assert_contains "$output" 'download_url\\":' "ER diagram renders successfully"
 
 log_info "Test: mermaid_to_svg - Gantt chart type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=gantt
     title Project
     section Phase
     Task1 :a1, 2024-01-01, 30d")
-assert_contains "$output" '<svg' "gantt chart renders successfully"
+assert_contains "$output" 'download_url\\":' "gantt chart renders successfully"
 
 log_info "Test: mermaid_to_svg - Pie chart type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg 'code=pie title Pets
     "Dogs" : 50
     "Cats" : 30')
-assert_contains "$output" '<svg' "pie chart renders successfully"
+assert_contains "$output" 'download_url\\":' "pie chart renders successfully"
 
 log_info "Test: mermaid_to_svg - Journey diagram type"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=journey
     title My Day
     section Morning
       Wake up: 5: Me")
-assert_contains "$output" '<svg' "journey diagram renders successfully"
+assert_contains "$output" 'download_url\\":' "journey diagram renders successfully"
 
 echo ""
 
@@ -279,9 +286,9 @@ log_info "Test: mermaid_to_pdf - Basic flowchart rendering"
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=graph TD; A-->B;")
 assert_contains "$output" 'ok\\": true' "returns ok=true"
 assert_contains "$output" 'request_id\\":' "returns request_id"
-assert_contains "$output" 'pdf\\":' "returns pdf field"
-# PDF magic bytes in base64: %PDF- = JVBERi (first 6 chars of base64-encoded "%PDF-")
-assert_contains "$output" 'JVBERi' "returns base64-encoded PDF content"
+assert_contains "$output" 'artifact_id\\":' "returns artifact_id"
+assert_contains "$output" 'download_url\\":' "returns download_url"
+assert_contains "$output" 'storage_type\\": \\"local' "returns storage_type=local"
 
 echo ""
 
@@ -302,7 +309,7 @@ log_info "Test: mermaid_to_pdf - Theme parameter"
 
 output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=graph TD; A-->B;" --tool-arg "theme=dark")
 assert_contains "$output" 'ok\\": true' "renders with dark theme"
-assert_contains "$output" 'JVBERi' "returns PDF content with theme"
+assert_contains "$output" 'download_url\\":' "returns download_url with theme"
 
 echo ""
 
@@ -315,7 +322,51 @@ output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=se
     Alice->>Bob: Hello
     Bob-->>Alice: Hi")
 assert_contains "$output" 'ok\\": true' "sequence diagram renders to PDF"
-assert_contains "$output" 'JVBERi' "returns PDF content for sequence diagram"
+assert_contains "$output" 'download_url\\":' "returns download_url for sequence diagram"
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: Local Storage - mermaid_to_svg with file:// URL
+# ----------------------------------------------------------------------------
+log_info "Test: Local Storage - mermaid_to_svg with file:// URL"
+
+# Set up local storage environment
+export STORAGE_TYPE=local
+export LOCAL_STORAGE_PATH="/tmp/mermaid-mcp-test-$$"
+export HOST_STORAGE_PATH="/tmp/mermaid-mcp-test-$$"
+mkdir -p "$LOCAL_STORAGE_PATH"
+
+# Note: The mermaid_to_svg tool returns artifact references when storage is configured
+# We verify local storage is operational by checking the tool returns download_url
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_svg --tool-arg "code=graph TD; Local-->Storage;")
+assert_contains "$output" 'ok\\": true' "local storage env mermaid_to_svg returns ok=true"
+assert_contains "$output" 'download_url\\":' "returns artifact reference with download_url"
+
+# Cleanup
+rm -rf "$LOCAL_STORAGE_PATH"
+unset STORAGE_TYPE LOCAL_STORAGE_PATH HOST_STORAGE_PATH
+
+echo ""
+
+# ----------------------------------------------------------------------------
+# Test: Local Storage - mermaid_to_pdf with artifact storage
+# ----------------------------------------------------------------------------
+log_info "Test: Local Storage - mermaid_to_pdf with artifact storage"
+
+export STORAGE_TYPE=local
+export LOCAL_STORAGE_PATH="/tmp/mermaid-mcp-test-$$"
+export HOST_STORAGE_PATH="/tmp/mermaid-mcp-test-$$"
+mkdir -p "$LOCAL_STORAGE_PATH"
+
+# Note: mermaid_to_pdf returns artifact references when storage is configured
+output=$(run_mcp_cli "tools/call" --tool-name mermaid_to_pdf --tool-arg "code=graph TD; PDF-->Local;")
+assert_contains "$output" 'ok\\": true' "local storage env mermaid_to_pdf returns ok=true"
+assert_contains "$output" 'download_url\\":' "returns artifact reference with download_url"
+
+# Cleanup
+rm -rf "$LOCAL_STORAGE_PATH"
+unset STORAGE_TYPE LOCAL_STORAGE_PATH HOST_STORAGE_PATH
 
 echo ""
 

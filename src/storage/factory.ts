@@ -72,7 +72,7 @@ function createLocalBackend(config: StorageConfig): StorageBackend {
     );
   }
 
-  console.log(
+  console.error(
     `[StorageFactory] Selected backend: Local (path: ${config.local.basePath})`,
   );
 
@@ -90,7 +90,7 @@ function createS3Backend(config: StorageConfig): StorageBackend {
     );
   }
 
-  console.log(
+  console.error(
     `[StorageFactory] Selected backend: S3 (bucket: ${config.s3.bucket}, region: ${config.s3.region})`,
   );
 
@@ -126,7 +126,7 @@ function autoDetectBackend(config: StorageConfig): StorageBackend {
     if (!localConfig) {
       throw new ConfigurationError("Local config is unexpectedly undefined");
     }
-    console.log(
+    console.error(
       `[StorageFactory] Auto-detected backend: Local (path: ${localConfig.basePath})`,
     );
     return new LocalStorageBackend(localConfig);
@@ -138,7 +138,7 @@ function autoDetectBackend(config: StorageConfig): StorageBackend {
     if (!s3Config) {
       throw new ConfigurationError("S3 config is unexpectedly undefined");
     }
-    console.log(
+    console.error(
       `[StorageFactory] Auto-detected backend: S3 (bucket: ${s3Config.bucket}, region: ${s3Config.region})`,
     );
     return new S3StorageBackend(s3Config);

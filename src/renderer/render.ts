@@ -35,7 +35,7 @@ export async function render(
       diagramPadding: 20,
       // Subgraph title margin to prevent title-node collision (Issue #138)
       // Default Mermaid values are { top: 0, bottom: 0 } which causes overlap
-      subGraphTitleMargin: { top: 10, bottom: 5 },
+      subGraphTitleMargin: { top: 30, bottom: 30 },
     },
     sequence: {
       useMaxWidth: false,
@@ -99,6 +99,9 @@ export async function render(
   if (options.googleFont) {
     svg = injectGoogleFont(svg, options.googleFont);
   }
+
+  // Embed original Mermaid source code as metadata for debugging
+  svg = embedMermaidSource(svg, code);
 
   // Extract dimensions from SVG
   const { width, height } = extractDimensions(svg);
@@ -213,4 +216,39 @@ function extractDimensions(svg: string): { width: number; height: number } {
   }
 
   return { width, height };
+}
+
+/**
+ * Embed original Mermaid source code as metadata in the SVG.
+ * This embeds the source in a <metadata> element with CDATA for debugging.
+ */
+function embedMermaidSource(svg: string, mermaidCode: string): string {
+  // Find the first <g> element or </defs> to insert metadata before
+  const svgOpenMatch = svg.match(/<svg[^>]*>/);
+  if (!svgOpenMatch || svgOpenMatch.index === undefined) {
+    return svg;
+  }
+
+  // Encode the mermaid code as base64 to avoid any XML escaping issues
+  const encodedSource = Buffer.from(mermaidCode, "utf-8").toString("base64");
+
+  // Create metadata element with the encoded source
+  const metadataElement = `<metadata>
+  <mermaid-source encoding="base64">${encodedSource}</mermaid-source>
+</metadata>`;
+
+  // Find where to insert - after </defs> if present, after </style> otherwise, or after svg open
+  const defsEndMatch = svg.match(/<\/defs>/);
+  const styleEndMatch = svg.match(/<\/style>/);
+
+  let insertPos: number;
+  if (defsEndMatch && defsEndMatch.index !== undefined) {
+    insertPos = defsEndMatch.index + defsEndMatch[0].length;
+  } else if (styleEndMatch && styleEndMatch.index !== undefined) {
+    insertPos = styleEndMatch.index + styleEndMatch[0].length;
+  } else {
+    insertPos = svgOpenMatch.index + svgOpenMatch[0].length;
+  }
+
+  return svg.slice(0, insertPos) + metadataElement + svg.slice(insertPos);
 }

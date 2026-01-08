@@ -153,7 +153,7 @@ function structuredLog(
     message,
     ...data,
   };
-  console.log(JSON.stringify(logEntry));
+  console.error(JSON.stringify(logEntry));
 }
 
 /**

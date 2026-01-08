@@ -1,12 +1,23 @@
 {
-  "name": "mermaid-mcp",
+  "name": "@fay-i/mermaid-mcp",
   "version": "0.1.0",
   "description": "MCP server for rendering Mermaid diagrams to vector artifacts",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "mermaid-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "vitest run",

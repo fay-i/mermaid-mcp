@@ -89,7 +89,7 @@ export class LocalStorageBackend implements StorageBackend {
     try {
       await writeFile(testFile, "test", "utf-8");
       await rm(testFile);
-      console.log(
+      console.error(
         `[LocalStorage] Write access validated: ${this.config.basePath}`,
       );
     } catch (error) {
@@ -137,7 +137,7 @@ export class LocalStorageBackend implements StorageBackend {
       }
 
       if (cleanedCount > 0) {
-        console.log(
+        console.error(
           `[LocalStorage] Cleaned up ${cleanedCount} orphaned .tmp files`,
         );
       }

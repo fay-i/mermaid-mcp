@@ -93,7 +93,7 @@ export class S3StorageBackend implements StorageBackend {
    */
   async initialize(): Promise<void> {
     // S3 doesn't require initialization
-    console.log(`[S3Storage] Backend initialized: ${this.config.bucket}`);
+    console.error(`[S3Storage] Backend initialized: ${this.config.bucket}`);
   }
 
   /**

@@ -56,7 +56,7 @@ describe("Storage Factory", () => {
     });
 
     it("should log selected backend", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "local";
       process.env.CONTAINER_STORAGE_PATH = tempDir;
@@ -99,7 +99,7 @@ describe("Storage Factory", () => {
     });
 
     it("should log selected backend", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "s3";
       process.env.S3_ENDPOINT = "http://localhost:9000";
@@ -175,7 +175,7 @@ describe("Storage Factory", () => {
     });
 
     it("should log auto-detected backend for local", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "auto";
       process.env.CONTAINER_STORAGE_PATH = tempDir;
@@ -192,7 +192,7 @@ describe("Storage Factory", () => {
     });
 
     it("should log auto-detected backend for S3", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "auto";
       delete process.env.CONTAINER_STORAGE_PATH;
@@ -224,7 +224,7 @@ describe("Storage Factory", () => {
 
   describe("Initialization", () => {
     it("should initialize LocalStorageBackend on creation", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "local";
       process.env.CONTAINER_STORAGE_PATH = tempDir;
@@ -243,7 +243,7 @@ describe("Storage Factory", () => {
     });
 
     it("should initialize S3StorageBackend on creation", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+      const consoleSpy = vi.spyOn(console, "error");
 
       process.env.STORAGE_TYPE = "s3";
       process.env.S3_ENDPOINT = "http://localhost:9000";
