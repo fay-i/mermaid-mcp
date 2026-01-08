@@ -52,8 +52,9 @@ describe("Session Cleanup", () => {
       // File should exist initially
       expect(await fileExists(filePath)).toBe(true);
 
-      // Wait for timeout + cleanup interval
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Wait for timeout + multiple cleanup intervals to ensure cleanup runs
+      // sessionTimeoutMs=100 + cleanupIntervalMs=50 + buffer for processing
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // File should be cleaned up
       expect(await fileExists(filePath)).toBe(false);

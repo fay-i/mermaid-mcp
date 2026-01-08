@@ -94,16 +94,18 @@ export const DeckSuccessResponseSchema = z.object({
   request_id: z.string().uuid(),
   /** Generated artifact ID (UUID) */
   artifact_id: z.string().uuid(),
-  /** Presigned S3 download URL */
+  /** Download URL (file:// for local, https:// for S3) */
   download_url: z.string().url(),
   /** CDN URL (when configured) */
   cdn_url: z.string().url().optional(),
   /** Ready-to-use download command */
   curl_command: z.string(),
-  /** S3 location details */
-  s3: S3LocationSchema,
-  /** URL expiration time in seconds */
-  expires_in_seconds: z.number().int().positive(),
+  /** Storage backend type */
+  storage_type: z.enum(["local", "s3"]),
+  /** S3 location details (S3 only) */
+  s3: S3LocationSchema.optional(),
+  /** URL expiration time in seconds (S3 only) */
+  expires_in_seconds: z.number().int().positive().optional(),
   /** MIME type (always application/pdf) */
   content_type: z.literal("application/pdf"),
   /** PDF file size in bytes */

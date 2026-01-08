@@ -3,7 +3,6 @@
  * Handles upload, presigned URL generation, and cleanup.
  */
 
-import { randomUUID } from "node:crypto";
 import {
   S3Client,
   PutObjectCommand,
@@ -13,6 +12,8 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import type { S3Config } from "./s3-config.js";
+import { InvalidArtifactIdError } from "./errors.js";
+import { UUID_REGEX } from "./validation.js";
 
 /** Content type to file extension mapping */
 const CONTENT_TYPE_EXTENSION: Record<string, string> = {
@@ -62,15 +63,21 @@ export class S3Storage {
   /**
    * Store an artifact and return a presigned download URL.
    *
+   * @param artifactId - UUID for the artifact (or generated if not provided)
    * @param content - Artifact content as Buffer
    * @param contentType - MIME type (image/svg+xml or application/pdf)
    * @returns Artifact reference with presigned URL
    */
   async storeArtifact(
+    artifactId: string,
     content: Buffer,
     contentType: "image/svg+xml" | "application/pdf",
   ): Promise<ArtifactResult> {
-    const artifactId = randomUUID();
+    // Validate artifactId is a proper UUID to prevent injection/path issues
+    if (!UUID_REGEX.test(artifactId)) {
+      throw new InvalidArtifactIdError(artifactId);
+    }
+
     const extension = CONTENT_TYPE_EXTENSION[contentType] ?? "bin";
     const key = `${artifactId}.${extension}`;
 

@@ -24,7 +24,7 @@ import type {
 } from "../schemas/deck-response.js";
 import { renderDeck, type DeckRenderOptions } from "./deck-renderer.js";
 import { assembleDeck, buildPageMetadata } from "../renderer/deck-assembler.js";
-import type { S3Storage } from "../storage/index.js";
+import type { S3Storage, StorageBackend } from "../storage/index.js";
 import { getCdnBaseUrl, buildCdnUrl } from "./cdn-url.js";
 import type { ToolConfig } from "./types.js";
 
@@ -153,24 +153,39 @@ function structuredLog(
     message,
     ...data,
   };
-  console.log(JSON.stringify(logEntry));
+  console.error(JSON.stringify(logEntry));
 }
 
 /**
- * MCP tool handler: mermaid_to_deck with S3 storage.
- * Generates a multi-page PDF deck from multiple Mermaid diagrams.
- *
- * @param input - Tool input parameters
- * @param storage - S3Storage instance
- * @returns Deck response with download URL or error
+ * Minimum required fields from storage result
  */
-export async function mermaidToDeckS3(
-  input: DeckRequest,
-  storage: S3Storage,
-): Promise<DeckResponse> {
-  const requestId = randomUUID();
-  const correlationId = generateCorrelationId();
+interface StorageResultBase {
+  artifact_id: string;
+  download_url: string;
+}
 
+/**
+ * Common deck generation pipeline.
+ * Extracts the shared workflow logic from mermaidToDeckS3 and mermaidToDeckWithStorage.
+ */
+async function runDeckPipeline<TStorageResult extends StorageResultBase>(
+  input: DeckRequest,
+  requestId: string,
+  correlationId: string,
+  _artifactSessionId: string,
+  storeArtifact: (
+    artifactId: string,
+    pdfBuffer: Buffer,
+    contentType: "application/pdf",
+  ) => Promise<TStorageResult>,
+  buildResponse: (
+    requestId: string,
+    storageResult: TStorageResult,
+    deckResult: Awaited<ReturnType<typeof assembleDeck>>,
+    pages: ReturnType<typeof buildPageMetadata>,
+    curlCommand: string,
+  ) => DeckResponse,
+): Promise<DeckResponse> {
   structuredLog("info", correlationId, "Deck generation started", {
     requestId,
     diagramCount: input.diagrams.length,
@@ -258,15 +273,17 @@ export async function mermaidToDeckS3(
     return createErrorResponse(requestId, assemblyError);
   }
 
-  // 6. Store in S3
-  structuredLog("info", correlationId, "Uploading to S3", {
+  // 6. Store artifact
+  structuredLog("info", correlationId, "Storing artifact", {
     requestId,
     sizeBytes: deckResult.sizeBytes,
   });
 
-  let artifact: Awaited<ReturnType<typeof storage.storeArtifact>>;
+  let storageResult: TStorageResult;
   try {
-    artifact = await storage.storeArtifact(
+    const artifactId = randomUUID();
+    storageResult = await storeArtifact(
+      artifactId,
       deckResult.pdfBuffer,
       "application/pdf",
     );
@@ -275,7 +292,7 @@ export async function mermaidToDeckS3(
       code: "STORAGE_FAILED",
       message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
     };
-    structuredLog("error", correlationId, "S3 upload failed", {
+    structuredLog("error", correlationId, "Storage failed", {
       requestId,
       error: storageError,
     });
@@ -284,40 +301,161 @@ export async function mermaidToDeckS3(
 
   // 7. Build success response
   const pages = buildPageMetadata(input.diagrams);
-  const outputFile = `${artifact.artifact_id}.pdf`;
-  const escapedUrl = artifact.download_url.replace(/'/g, "'\\''");
+  const artifactId = storageResult.artifact_id;
+  const downloadUrl = storageResult.download_url;
+  const outputFile = `${artifactId}.pdf`;
+  const escapedUrl = downloadUrl.replace(/'/g, "'\\''");
   const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
 
-  const response: DeckSuccessResponse = {
-    ok: true,
-    request_id: requestId,
-    artifact_id: artifact.artifact_id,
-    download_url: artifact.download_url,
-    curl_command: curlCommand,
-    s3: artifact.s3,
-    expires_in_seconds: artifact.expires_in_seconds,
-    content_type: "application/pdf",
-    size_bytes: deckResult.sizeBytes,
-    page_count: deckResult.pageCount,
+  const response = buildResponse(
+    requestId,
+    storageResult,
+    deckResult,
     pages,
-    warnings: [],
-    errors: [],
-  };
-
-  // Conditionally add CDN URL
-  const cdnBaseUrl = getCdnBaseUrl();
-  if (cdnBaseUrl) {
-    response.cdn_url = buildCdnUrl(cdnBaseUrl, artifact.artifact_id, "pdf");
-  }
+    curlCommand,
+  );
 
   structuredLog("info", correlationId, "Deck generation completed", {
     requestId,
-    artifactId: artifact.artifact_id,
+    artifactId,
     pageCount: deckResult.pageCount,
     sizeBytes: deckResult.sizeBytes,
   });
 
   return response;
+}
+
+/**
+ * MCP tool handler: mermaid_to_deck with S3 storage.
+ * Generates a multi-page PDF deck from multiple Mermaid diagrams.
+ *
+ * @param input - Tool input parameters
+ * @param storage - S3Storage instance
+ * @returns Deck response with download URL or error
+ */
+export async function mermaidToDeckS3(
+  input: DeckRequest,
+  storage: S3Storage,
+): Promise<DeckResponse> {
+  const requestId = randomUUID();
+  const correlationId = generateCorrelationId();
+  const artifactSessionId = randomUUID(); // Not used for S3 but required for interface
+
+  return runDeckPipeline(
+    input,
+    requestId,
+    correlationId,
+    artifactSessionId,
+    // Storage callback
+    async (artifactId, pdfBuffer, contentType) => {
+      return await storage.storeArtifact(artifactId, pdfBuffer, contentType);
+    },
+    // Response builder callback
+    (requestId, storageResult, deckResult, pages, curlCommand) => {
+      const response: DeckSuccessResponse = {
+        ok: true,
+        request_id: requestId,
+        artifact_id: storageResult.artifact_id,
+        download_url: storageResult.download_url,
+        curl_command: curlCommand,
+        storage_type: "s3",
+        s3: storageResult.s3,
+        expires_in_seconds: storageResult.expires_in_seconds,
+        content_type: "application/pdf",
+        size_bytes: deckResult.sizeBytes,
+        page_count: deckResult.pageCount,
+        pages,
+        warnings: [],
+        errors: [],
+      };
+
+      // Conditionally add CDN URL
+      const cdnBaseUrl = getCdnBaseUrl();
+      if (cdnBaseUrl) {
+        response.cdn_url = buildCdnUrl(
+          cdnBaseUrl,
+          storageResult.artifact_id,
+          "pdf",
+        );
+      }
+
+      return response;
+    },
+  );
+}
+
+/**
+ * MCP tool handler: mermaid_to_deck with StorageBackend.
+ * Generates a multi-page PDF deck from multiple Mermaid diagrams.
+ *
+ * @param input - Tool input parameters
+ * @param storage - StorageBackend instance (local or S3)
+ * @param sessionId - Session identifier for artifact grouping (optional, generates default if not provided)
+ * @returns Deck response with download URL or error
+ */
+export async function mermaidToDeckWithStorage(
+  input: DeckRequest,
+  storage: StorageBackend,
+  sessionId?: string,
+): Promise<DeckResponse> {
+  const requestId = randomUUID();
+  const correlationId = generateCorrelationId();
+  const artifactSessionId = sessionId ?? randomUUID(); // Generate default session if not provided
+
+  return runDeckPipeline(
+    input,
+    requestId,
+    correlationId,
+    artifactSessionId,
+    // Storage callback
+    async (artifactId, pdfBuffer, contentType) => {
+      return await storage.store(
+        artifactSessionId,
+        artifactId,
+        pdfBuffer,
+        contentType,
+      );
+    },
+    // Response builder callback
+    (requestId, storageResult, deckResult, pages, curlCommand) => {
+      const response: DeckSuccessResponse = {
+        ok: true,
+        request_id: requestId,
+        artifact_id: storageResult.artifact_id,
+        download_url: storageResult.download_url,
+        curl_command: curlCommand,
+        storage_type: storageResult.storage_type,
+        content_type: "application/pdf",
+        size_bytes: deckResult.sizeBytes,
+        page_count: deckResult.pageCount,
+        pages,
+        warnings: [],
+        errors: [],
+      };
+
+      // Add S3-specific fields if S3 storage
+      if (storageResult.storage_type === "s3") {
+        if (storageResult.s3) {
+          response.s3 = storageResult.s3;
+        }
+        if (storageResult.expires_in_seconds !== undefined) {
+          response.expires_in_seconds = storageResult.expires_in_seconds;
+        }
+      }
+
+      // Conditionally add CDN URL
+      const cdnBaseUrl = getCdnBaseUrl();
+      if (cdnBaseUrl) {
+        response.cdn_url = buildCdnUrl(
+          cdnBaseUrl,
+          storageResult.artifact_id,
+          "pdf",
+        );
+      }
+
+      return response;
+    },
+  );
 }
 
 /**

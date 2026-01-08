@@ -1,9 +1,12 @@
 /**
  * CDN Artifact Proxy entry point.
- * HTTP server for serving Mermaid artifacts from S3/MinIO storage.
+ * HTTP server for serving Mermaid artifacts from S3/MinIO or local filesystem storage.
  */
 
 import http from "node:http";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 import { loadCdnProxyConfig } from "./config.js";
 import { parseRoute } from "./router.js";
 import { sendError } from "./errors.js";
@@ -11,8 +14,12 @@ import { createRequestContext, getDurationMs } from "./middleware.js";
 import { logRequest, createLogEntry, logStartup, logReady } from "./logger.js";
 import { handleHealth } from "./handlers/health.js";
 import { handleArtifact } from "./handlers/artifact.js";
+import { handleLocalFile } from "./handlers/local-file-handler.js";
 import { createS3Fetcher } from "./s3-fetcher.js";
+import { createLocalFetcher } from "./local-fetcher.js";
 import { createCache } from "./cache.js";
+import { createStorageBackend } from "../storage/factory.js";
+import type { LocalStorageBackend } from "../storage/local-backend.js";
 
 /** Service start time for uptime calculation */
 const startTime = Date.now();
@@ -39,16 +46,43 @@ async function main(): Promise<void> {
     cacheTtlMs: config.cacheTtlMs,
   });
 
-  // Create S3 fetcher if configured
-  const s3Fetcher = config.s3.configured
-    ? createS3Fetcher({
-        endpoint: config.s3.endpoint,
-        bucket: config.s3.bucket,
-        accessKeyId: config.s3.accessKeyId,
-        secretAccessKey: config.s3.secretAccessKey,
-        region: config.s3.region,
-      })
-    : null;
+  // Create storage backend and fetchers based on storage type
+  let s3Fetcher = null;
+  let localFetcher = null;
+  let storageBackend = null;
+
+  if (config.storageType === "s3" && config.s3.configured) {
+    s3Fetcher = createS3Fetcher({
+      endpoint: config.s3.endpoint,
+      bucket: config.s3.bucket,
+      accessKeyId: config.s3.accessKeyId,
+      secretAccessKey: config.s3.secretAccessKey,
+      region: config.s3.region,
+    });
+  } else if (config.storageType === "local" && config.localStoragePath) {
+    // Create storage backend for local storage
+    storageBackend = await createStorageBackend();
+    if (storageBackend.getType() === "local") {
+      localFetcher = createLocalFetcher(
+        storageBackend as LocalStorageBackend,
+        config.localStoragePath,
+      );
+    }
+  } else if (config.storageType === "unknown") {
+    // Fail fast when storage type is unknown
+    const message =
+      "Storage configuration is ambiguous or missing. " +
+      "Either configure local storage (CONTAINER_STORAGE_PATH) or S3 (S3_ENDPOINT, S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), but not both. " +
+      "Or set STORAGE_TYPE explicitly to 'local' or 's3'.";
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+    throw new Error(message);
+  }
 
   // Create cache if enabled
   const cache = config.cacheEnabled
@@ -75,17 +109,45 @@ async function main(): Promise<void> {
         case "health":
           await handleHealth(res, ctx, {
             s3Fetcher,
+            localStorageBackend: storageBackend as LocalStorageBackend | null,
             cache,
             getUptimeSeconds,
+            storageType: config.storageType,
           });
           break;
 
         case "artifact":
-          await handleArtifact(res, ctx, route.artifact, {
-            config,
-            s3Fetcher,
-            cache,
-          });
+          // Route based on storage type and artifact path format
+          // Local storage uses /artifacts/{session}/{uuid}.{ext}
+          // S3 storage uses /artifacts/{uuid}.{ext}
+          if (route.artifact.sessionId && config.storageType === "local") {
+            // Local storage request
+            if (localFetcher) {
+              await handleLocalFile(res, ctx, route.artifact, {
+                localFetcher,
+              });
+            } else {
+              sendError(res, "NOT_CONFIGURED", ctx.path, ctx.requestId);
+              logRequest(
+                createLogEntry({
+                  request_id: ctx.requestId,
+                  method: ctx.method,
+                  path: ctx.path,
+                  status: 503,
+                  duration_ms: getDurationMs(ctx),
+                  cache: "disabled",
+                  error: "NOT_CONFIGURED",
+                }),
+              );
+            }
+          } else {
+            // S3 storage request (legacy format or S3 backend)
+            await handleArtifact(res, ctx, route.artifact, {
+              config,
+              s3Fetcher,
+              cache,
+            });
+          }
           break;
 
         case "invalid_path":
@@ -169,7 +231,14 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((error) => {
-  console.error("Failed to start CDN proxy:", error);
-  process.exit(1);
-});
+// Only run main() when executed directly, not when imported for testing
+// Use normalized/resolved paths for cross-platform compatibility (Windows, symlinks)
+const currentModulePath = realpathSync(fileURLToPath(import.meta.url));
+const entryPointPath = realpathSync(resolve(process.argv[1]));
+const isMainModule = currentModulePath === entryPointPath;
+if (isMainModule) {
+  main().catch((error) => {
+    console.error("Failed to start CDN proxy:", error);
+    process.exit(1);
+  });
+}

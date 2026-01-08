@@ -13,11 +13,18 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Artifact path regex.
+ * S3 artifact path regex (legacy format).
  * Matches: /artifacts/{uuid}.{svg|pdf}
  */
-const ARTIFACT_PATH_PATTERN =
+const S3_ARTIFACT_PATH_PATTERN =
   /^\/artifacts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(svg|pdf)$/i;
+
+/**
+ * Local storage artifact path regex (session-based format).
+ * Matches: /artifacts/{sessionId}/{uuid}.{svg|pdf}
+ */
+const LOCAL_ARTIFACT_PATH_PATTERN =
+  /^\/artifacts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(svg|pdf)$/i;
 
 /**
  * Route types for the CDN proxy.
@@ -35,6 +42,7 @@ export type RouteResult =
 
 /**
  * Parse a request path and determine the route.
+ * Supports both S3 format (/artifacts/{uuid}.{ext}) and local format (/artifacts/{session}/{uuid}.{ext}).
  */
 export function parseRoute(path: string): RouteResult {
   // Health endpoint
@@ -44,17 +52,32 @@ export function parseRoute(path: string): RouteResult {
 
   // Check if it looks like an artifact path
   if (path.startsWith("/artifacts/")) {
-    const match = path.match(ARTIFACT_PATH_PATTERN);
-    if (match) {
+    // Try local storage format first (session-based): /artifacts/{session}/{uuid}.{ext}
+    const localMatch = path.match(LOCAL_ARTIFACT_PATH_PATTERN);
+    if (localMatch) {
       return {
         type: "artifact",
         artifact: {
-          artifactId: match[1].toLowerCase(),
-          extension: match[2].toLowerCase() as "svg" | "pdf",
+          sessionId: localMatch[1].toLowerCase(),
+          artifactId: localMatch[2].toLowerCase(),
+          extension: localMatch[3].toLowerCase() as "svg" | "pdf",
         },
       };
     }
-    // Path starts with /artifacts/ but doesn't match the pattern
+
+    // Try S3 format (legacy): /artifacts/{uuid}.{ext}
+    const s3Match = path.match(S3_ARTIFACT_PATH_PATTERN);
+    if (s3Match) {
+      return {
+        type: "artifact",
+        artifact: {
+          artifactId: s3Match[1].toLowerCase(),
+          extension: s3Match[2].toLowerCase() as "svg" | "pdf",
+        },
+      };
+    }
+
+    // Path starts with /artifacts/ but doesn't match either pattern
     return { type: "invalid_path" };
   }
 

@@ -467,7 +467,7 @@ export async function mermaidToSvgWithFallback(
 // S3 Storage version
 // ============================================
 
-import type { S3Storage } from "../storage/index.js";
+import type { S3Storage, StorageBackend } from "../storage/index.js";
 import type {
   ArtifactOutput,
   ArtifactSuccessOutput,
@@ -557,7 +557,12 @@ export async function mermaidToSvgS3(
   // 5. Store in S3 and get presigned URL
   try {
     const svgBuffer = Buffer.from(renderResult.svg, "utf-8");
-    const artifact = await storage.storeArtifact(svgBuffer, "image/svg+xml");
+    const artifactId = randomUUID();
+    const artifact = await storage.storeArtifact(
+      artifactId,
+      svgBuffer,
+      "image/svg+xml",
+    );
 
     // Generate curl command with output filename
     // Escape single quotes in URL for shell safety (replace ' with '\'' for proper shell escaping)
@@ -572,6 +577,7 @@ export async function mermaidToSvgS3(
       artifact_id: artifact.artifact_id,
       download_url: artifact.download_url,
       curl_command: curlCommand,
+      storage_type: "s3",
       s3: artifact.s3,
       expires_in_seconds: artifact.expires_in_seconds,
       content_type: "image/svg+xml",
@@ -584,6 +590,120 @@ export async function mermaidToSvgS3(
     const cdnBaseUrl = getCdnBaseUrl();
     if (cdnBaseUrl) {
       response.cdn_url = buildCdnUrl(cdnBaseUrl, artifact.artifact_id, "svg");
+    }
+
+    return response;
+  } catch (error) {
+    return createS3ErrorResponse(requestId, {
+      code: "STORAGE_FAILED",
+      message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
+
+/**
+ * MCP tool handler: mermaid_to_svg with StorageBackend.
+ * Converts Mermaid diagram source to SVG format, stores using StorageBackend,
+ * and returns a download URL (file:// for local, https:// for S3).
+ *
+ * @param input - Tool input parameters
+ * @param storage - StorageBackend instance (local or S3)
+ * @param sessionId - Session identifier for artifact grouping (optional, generates default if not provided)
+ * @returns Output with download URL
+ */
+export async function mermaidToSvgWithStorage(
+  input: MermaidToSvgInput,
+  storage: StorageBackend,
+  sessionId?: string,
+): Promise<ArtifactOutput> {
+  const requestId = randomUUID();
+  const artifactSessionId = sessionId ?? randomUUID(); // Generate default session if not provided
+
+  // 1. Validate input code
+  const inputError = validateInput(input.code);
+  if (inputError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(inputError));
+  }
+
+  // 2. Validate timeout_ms
+  const timeoutError = validateTimeout(input.timeout_ms);
+  if (timeoutError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(timeoutError));
+  }
+
+  // 3. Parse config_json
+  const { config, error: configError } = parseConfigJson(input.config_json);
+  if (configError) {
+    return createS3ErrorResponse(requestId, mapToArtifactError(configError));
+  }
+
+  // 4. Render with timeout enforcement
+  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+  const renderResult = await renderWithTimeout(
+    input.code,
+    timeoutMs,
+    input.theme,
+    input.background,
+    config,
+    input.drop_shadow,
+    input.google_font,
+  );
+
+  if ("error" in renderResult) {
+    return createS3ErrorResponse(
+      requestId,
+      mapToArtifactError(renderResult.error),
+    );
+  }
+
+  // 5. Store using StorageBackend
+  try {
+    const svgBuffer = Buffer.from(renderResult.svg, "utf-8");
+    const artifactId = randomUUID();
+    const storageResult = await storage.store(
+      artifactSessionId,
+      artifactId,
+      svgBuffer,
+      "image/svg+xml",
+    );
+
+    // Generate curl command with output filename
+    const outputFile = `${storageResult.artifact_id}.svg`;
+    const escapedUrl = storageResult.download_url.replace(/'/g, "'\\''");
+    const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
+
+    // Build response object
+    const response: ArtifactSuccessOutput = {
+      ok: true,
+      request_id: requestId,
+      artifact_id: storageResult.artifact_id,
+      download_url: storageResult.download_url,
+      curl_command: curlCommand,
+      storage_type: storageResult.storage_type,
+      content_type: storageResult.content_type,
+      size_bytes: storageResult.size_bytes,
+      warnings: [],
+      errors: [],
+    };
+
+    // Add S3-specific fields if S3 storage
+    if (storageResult.storage_type === "s3") {
+      if (storageResult.s3) {
+        response.s3 = storageResult.s3;
+      }
+      if (storageResult.expires_in_seconds !== undefined) {
+        response.expires_in_seconds = storageResult.expires_in_seconds;
+      }
+    }
+
+    // Conditionally add cdn_url when configured
+    const cdnBaseUrl = getCdnBaseUrl();
+    if (cdnBaseUrl) {
+      response.cdn_url = buildCdnUrl(
+        cdnBaseUrl,
+        storageResult.artifact_id,
+        "svg",
+      );
     }
 
     return response;

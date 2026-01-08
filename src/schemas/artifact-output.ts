@@ -36,19 +36,23 @@ export const S3LocationSchema = z.object({
 export type S3Location = z.infer<typeof S3LocationSchema>;
 
 /**
- * Success output with S3 artifact reference and presigned URL.
+ * Success output with artifact reference and download URL.
+ * Supports both local (file://) and S3 (https://) storage backends.
  */
 export const ArtifactSuccessOutputSchema = z.object({
   ok: z.literal(true),
   request_id: z.string().uuid(),
   artifact_id: z.string().uuid(),
-  /** Presigned download URL - use with curl */
+  /** Download URL (file:// for local, https:// for S3) - use with curl */
   download_url: z.string().url(),
   /** Ready-to-use curl command */
   curl_command: z.string(),
-  /** S3 location for aws-cli access */
-  s3: S3LocationSchema,
-  expires_in_seconds: z.number().int().positive(),
+  /** Storage backend type */
+  storage_type: z.enum(["local", "s3"]),
+  /** S3 location for aws-cli access (S3 only) */
+  s3: S3LocationSchema.optional(),
+  /** Presigned URL expiry in seconds (S3 only) */
+  expires_in_seconds: z.number().int().positive().optional(),
   content_type: z.enum(["image/svg+xml", "application/pdf"]),
   size_bytes: z.number().int().nonnegative(),
   /** CDN URL for artifact access (when CDN proxy is configured) */

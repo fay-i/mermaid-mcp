@@ -1,12 +1,23 @@
 {
-  "name": "mermaid-mcp",
+  "name": "@fay-i/mermaid-mcp",
   "version": "0.1.0",
   "description": "MCP server for rendering Mermaid diagrams to vector artifacts",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "mermaid-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "vitest run",
@@ -31,7 +42,7 @@
     "@aws-sdk/client-s3": "^3.962.0",
     "@aws-sdk/s3-request-presigner": "^3.962.0",
     "@mermaid-js/mermaid-cli": "^11.12.0",
-    "@modelcontextprotocol/sdk": "^1.24.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "lru-cache": "^11.2.4",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^23.11.1",

@@ -22,6 +22,7 @@ FROM node:24-slim
 # Install chromium dependencies for puppeteer
 RUN apt-get update && apt-get install -y \
     chromium \
+    curl \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -64,6 +65,12 @@ COPY --from=builder /app/dist ./dist
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# Create volume mount point for local artifact storage
+RUN mkdir -p /app/data/artifacts && chown -R mcp:mcp /app/data
+
+# Declare volume for persistent artifact storage
+VOLUME ["/app/data/artifacts"]
+
 # Switch to non-root user
 USER mcp
 
@@ -71,4 +78,5 @@ USER mcp
 EXPOSE 8000
 
 # Default: run via supergateway to expose stdio as SSE
-CMD ["supergateway", "--stdio", "node dist/index.js", "--port", "8000", "--healthEndpoint", "/health"]
+# The data directory is the mounted volume path
+CMD ["supergateway", "--stdio", "node dist/index.js /app/data/artifacts", "--port", "8000", "--healthEndpoint", "/health"]

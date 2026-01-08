@@ -1,0 +1,209 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit Configuration - Security-First Review Policy
+# Priority: Security > Logic/Correctness > Design Principles
+
+language: "en-US"
+early_access: false
+
+# Strict, security-focused tone
+tone_instructions: "Security-first senior reviewer. Priority: 1) Security (OWASP/CWE), 2) Logic/correctness, 3) DRY/YAGNI. Be direct and cite standards."
+
+reviews:
+  # Assertive profile for thorough, detailed feedback
+  profile: "assertive"
+  
+  # Request changes workflow for critical security issues
+  request_changes_workflow: true
+  
+  # Include comprehensive summaries
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  
+  # Detailed review status
+  review_status: true
+  collapse_walkthrough: false
+  
+  # Enable all context features
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  
+  # Auto-review configuration
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT REVIEW"
+    
+  # Security-focused path instructions
+  path_instructions:
+    # Source code - highest scrutiny
+    - path: "src/**/*.ts"
+      instructions: |
+        SECURITY PRIORITY:
+        - Check for SQL injection, command injection, path traversal vulnerabilities
+        - Validate all user inputs are sanitized and validated
+        - Ensure proper error handling that doesn't leak sensitive information
+        - Verify authentication and authorization checks are present
+        - Check for hardcoded secrets, API keys, or credentials
+        - Ensure cryptographic operations use secure algorithms (no MD5, SHA1)
+        - Validate proper use of environment variables for sensitive data
+        - Check for insecure deserialization
+        - Verify proper CORS and CSP headers in HTTP responses
+        
+        LOGIC AND CORRECTNESS:
+        - Verify business logic correctness and edge case handling
+        - Check for race conditions, deadlocks, and concurrency issues
+        - Ensure proper null/undefined checks and type safety
+        - Validate error handling and recovery mechanisms
+        - Check for off-by-one errors, boundary conditions
+        - Ensure factual accuracy in comments and documentation
+        
+        DESIGN PRINCIPLES:
+        - Flag code duplication (DRY violations)
+        - Identify over-engineering and unnecessary complexity (YAGNI violations)
+        - Suggest abstraction opportunities for repeated patterns
+        - Recommend simplifications where appropriate
+    
+    # Schema definitions - data validation critical
+    - path: "src/schemas/**/*.ts"
+      instructions: |
+        SECURITY PRIORITY:
+        - Ensure all schemas have strict validation rules
+        - Check for maximum length constraints on string fields
+        - Verify numeric ranges are bounded
+        - Ensure no fields allow arbitrary code execution
+        - Validate regex patterns don't have ReDoS vulnerabilities
+        - Check for proper sanitization of special characters
+        
+        LOGIC:
+        - Verify schema matches actual data structures
+        - Check for missing required fields
+        - Ensure enum values are complete and correct
+    
+    # Test files - security test coverage
+    - path: "tests/**/*.ts"
+      instructions: |
+        SECURITY PRIORITY:
+        - Verify security test coverage for authentication/authorization
+        - Check for tests validating input sanitization
+        - Ensure tests cover error conditions that might leak information
+        - Verify tests for rate limiting and DoS protection
+        
+        LOGIC:
+        - Check test assertions are meaningful and correct
+        - Verify edge cases and boundary conditions are tested
+        - Ensure mocks don't hide real security issues
+        
+        DESIGN:
+        - Flag duplicated test setup code
+        - Suggest test utilities for common patterns
+    
+    # Configuration files - security settings
+    - path: "*.{json,yaml,yml}"
+      instructions: |
+        SECURITY PRIORITY:
+        - Check for exposed secrets or API keys
+        - Verify secure default configurations
+        - Ensure no debug/development settings in production configs
+        - Validate dependency versions don't have known vulnerabilities
+        - Check for overly permissive access controls
+    
+    # Docker and infrastructure
+    - path: "{Dockerfile,docker-compose.yml,k8s/**/*}"
+      instructions: |
+        SECURITY PRIORITY:
+        - Ensure containers don't run as root
+        - Check for minimal base images
+        - Verify no secrets in environment variables
+        - Validate proper network isolation
+        - Check for secure volume mounts
+        - Ensure proper health checks
+    
+    # GitHub workflows - CI/CD security
+    - path: ".github/workflows/**/*.{yml,yaml}"
+      instructions: |
+        SECURITY PRIORITY:
+        - Verify secrets are properly handled
+        - Check for least-privilege principle in permissions
+        - Ensure no code execution from untrusted sources
+        - Validate third-party action versions are pinned
+        - Check for proper OIDC authentication
+        - Ensure sensitive operations require approval
+    
+    # Dependencies
+    - path: "package*.json"
+      instructions: |
+        SECURITY PRIORITY:
+        - Flag dependencies with known vulnerabilities
+        - Check for outdated packages with security patches
+        - Verify no malicious packages (typosquatting)
+        - Ensure lockfile integrity
+        - Check for unnecessary dependencies (minimize attack surface)
+
+  # Enable all tools for comprehensive analysis
+  tools:
+    github-checks:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    biome:
+      enabled: true
+    ruff:
+      enabled: true
+    phpstan:
+      enabled: true
+    golangci-lint:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    checkov:
+      enabled: true
+    osvScanner:
+      enabled: true
+
+# Chat configuration
+chat:
+  auto_reply: true
+
+# Knowledge base - learn from security issues
+knowledge_base:
+  opt_out: false
+  
+  # Enable web search for security advisories
+  web_search:
+    enabled: true
+  
+  # Learn from code guidelines
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "SECURITY.md"
+      - "docs/**/*.md"
+  
+  # Learn from previous issues
+  learnings:
+    scope: "global"
+  
+  # Track security-related issues
+  issues:
+    scope: "global"
+
+# Enable AI code generation assistance (controlled via reviews.finishing_touches)
+# code_generation:
+#   docstrings:
+#     language: "en"
+#   unit_tests:
+#     path_instructions: "tests/**/*"

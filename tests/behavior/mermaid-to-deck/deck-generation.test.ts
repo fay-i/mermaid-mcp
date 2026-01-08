@@ -13,19 +13,20 @@ class MockS3Storage {
   public lastUpload: { content: Buffer; contentType: string } | null = null;
 
   async storeArtifact(
+    artifactId: string,
     content: Buffer,
     contentType: "image/svg+xml" | "application/pdf",
   ) {
     this.lastUpload = { content, contentType };
     return {
-      artifact_id: "mock-artifact-id",
-      download_url: "https://mock-s3.example.com/mock-artifact-id.pdf",
+      artifact_id: artifactId,
+      download_url: `https://mock-s3.example.com/${artifactId}.pdf`,
       expires_in_seconds: 3600,
       content_type: contentType,
       size_bytes: content.length,
       s3: {
         bucket: "mock-bucket",
-        key: "mock-artifact-id.pdf",
+        key: `${artifactId}.pdf`,
         region: "us-east-1",
       },
     };
