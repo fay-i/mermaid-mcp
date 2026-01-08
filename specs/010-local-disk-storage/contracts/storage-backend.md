@@ -228,9 +228,16 @@ export class LocalStorageBackend implements StorageBackend {
 
 #### exists()
 
+**Preconditions**:
+- `sessionId` must be valid UUID format (throws `InvalidSessionIdError` if invalid)
+- `artifactId` must be valid UUID format (throws `InvalidArtifactIdError` if invalid)
+
 **Postconditions**:
 - Returns `true` if file exists, `false` otherwise
-- Never throws (file system errors return `false`)
+- **LocalStorageBackend**: Never throws for operational errors (filesystem errors return `false`)
+- **S3StorageBackend**: Returns `false` for "NotFound" errors, but may throw for operational errors (network failures, access denied, etc.) via `mapS3Error()`
+
+**Note**: Consider reconciling this behavior to make exists() consistent across backends - either make S3StorageBackend also return `false` for all operational errors, or update callers to handle potential exceptions from S3 operations.
 
 #### getType()
 
@@ -285,6 +292,18 @@ export class S3StorageBackend implements StorageBackend {
 #### getType()
 
 **Returns**: `'s3'`
+
+#### exists()
+
+**Postconditions**:
+- Returns `true` if object exists in S3, `false` if not found (NotFound/NoSuchKey)
+- **May throw** on S3-level failures: access denied, network errors, etc.
+- Throws via `mapS3Error()` for operational errors (e.g., `S3_ERROR`, `PERMISSION_DENIED`)
+
+**Contrast with LocalStorageBackend**:
+- LocalStorageBackend.exists() never throws for operational errors (returns `false`)
+- S3StorageBackend.exists() propagates S3 operational errors to caller
+- Both validate UUIDs and throw validation errors (`InvalidSessionIdError`, `InvalidArtifactIdError`)
 
 ---
 

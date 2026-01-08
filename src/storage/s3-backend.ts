@@ -45,15 +45,6 @@ function validateUUID(id: string, fieldName: string): void {
 }
 
 /**
- * Get file extension from content type
- */
-function _getExtension(
-  contentType: "image/svg+xml" | "application/pdf",
-): string {
-  return contentType === "image/svg+xml" ? "svg" : "pdf";
-}
-
-/**
  * S3 storage backend implementation.
  * Wraps existing S3Storage and provides StorageBackend interface.
  */
@@ -94,6 +85,37 @@ export class S3StorageBackend implements StorageBackend {
   async initialize(): Promise<void> {
     // S3 doesn't require initialization
     console.error(`[S3Storage] Backend initialized: ${this.config.bucket}`);
+  }
+
+  /**
+   * Find artifact key by trying both .svg and .pdf extensions.
+   * Returns the key if found, null if not found.
+   * Throws on operational errors (non-NotFound S3 errors).
+   */
+  private async findArtifactKey(artifactId: string): Promise<string | null> {
+    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
+
+    for (const key of keys) {
+      try {
+        await this.s3Client.send(
+          new HeadObjectCommand({
+            Bucket: this.config.bucket,
+            Key: key,
+          }),
+        );
+        return key; // Found
+      } catch (error) {
+        // NotFound/NoSuchKey error means try next extension
+        const errorName = (error as { name?: string }).name;
+        if (errorName === "NotFound" || errorName === "NoSuchKey") {
+          continue;
+        }
+        // Other errors are real failures - propagate them
+        throw error;
+      }
+    }
+
+    return null; // Not found with any extension
   }
 
   /**
@@ -141,45 +163,43 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // S3 keys don't use sessionId (backward compatibility)
-    // Format: {artifact_id}.{ext}
-    // We need to check both .svg and .pdf extensions
-    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
-
-    for (const key of keys) {
-      try {
-        const response = await this.s3Client.send(
-          new GetObjectCommand({
-            Bucket: this.config.bucket,
-            Key: key,
-          }),
-        );
-
-        if (!response.Body) {
-          continue; // Try next extension
-        }
-
-        // Convert stream to buffer
-        const chunks: Buffer[] = [];
-        const readable = response.Body as Readable;
-
-        for await (const chunk of readable) {
-          chunks.push(Buffer.from(chunk));
-        }
-
-        return Buffer.concat(chunks);
-      } catch (error) {
-        // NoSuchKey error means try next extension
-        if ((error as { name?: string }).name === "NoSuchKey") {
-          continue;
-        }
-        // Other errors are real failures
-        throw this.mapS3Error(error, "retrieve");
-      }
+    // Find the artifact key
+    let key: string | null;
+    try {
+      key = await this.findArtifactKey(artifactId);
+    } catch (error) {
+      throw this.mapS3Error(error, "retrieve");
     }
 
-    // Artifact not found with any extension
-    throw new ArtifactNotFoundError(sessionId, artifactId);
+    if (!key) {
+      throw new ArtifactNotFoundError(sessionId, artifactId);
+    }
+
+    // Retrieve the artifact content
+    try {
+      const response = await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.config.bucket,
+          Key: key,
+        }),
+      );
+
+      if (!response.Body) {
+        throw new ArtifactNotFoundError(sessionId, artifactId);
+      }
+
+      // Convert stream to buffer
+      const chunks: Buffer[] = [];
+      const readable = response.Body as Readable;
+
+      for await (const chunk of readable) {
+        chunks.push(Buffer.from(chunk));
+      }
+
+      return Buffer.concat(chunks);
+    } catch (error) {
+      throw this.mapS3Error(error, "retrieve");
+    }
   }
 
   /**
@@ -190,21 +210,13 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Check both extensions
+    // Try to delete both possible extensions
     const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
 
     let found = false;
     for (const key of keys) {
       try {
-        // Check if exists first
-        await this.s3Client.send(
-          new HeadObjectCommand({
-            Bucket: this.config.bucket,
-            Key: key,
-          }),
-        );
-
-        // Delete if exists
+        // Attempt delete directly without HeadObjectCommand
         await this.s3Client.send(
           new DeleteObjectCommand({
             Bucket: this.config.bucket,
@@ -215,8 +227,9 @@ export class S3StorageBackend implements StorageBackend {
         found = true;
         break; // Only one extension should exist
       } catch (error) {
-        // NotFound error means try next extension
-        if ((error as { name?: string }).name === "NotFound") {
+        // NotFound/NoSuchKey error means try next extension
+        const errorName = (error as { name?: string }).name;
+        if (errorName === "NotFound" || errorName === "NoSuchKey") {
           continue;
         }
         throw this.mapS3Error(error, "delete");
@@ -229,36 +242,23 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   /**
-   * Check if artifact exists in S3
+   * Check if artifact exists in S3.
+   * Returns false on any S3/network error (aligned with LocalStorageBackend behavior).
    */
   async exists(sessionId: string, artifactId: string): Promise<boolean> {
-    // Validate UUIDs
+    // Validate UUIDs (these still throw validation errors)
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Check both extensions
-    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
-
-    for (const key of keys) {
-      try {
-        await this.s3Client.send(
-          new HeadObjectCommand({
-            Bucket: this.config.bucket,
-            Key: key,
-          }),
-        );
-        return true; // Found with this extension
-      } catch (error) {
-        // NotFound error means try next extension
-        if ((error as { name?: string }).name === "NotFound") {
-          continue;
-        }
-        // Other errors are real failures
-        throw this.mapS3Error(error, "exists");
-      }
+    // Check both extensions, suppress all operational errors
+    try {
+      const key = await this.findArtifactKey(artifactId);
+      return key !== null;
+    } catch {
+      // Suppress all S3/network errors and return false
+      // This aligns with LocalStorageBackend behavior
+      return false;
     }
-
-    return false; // Not found with any extension
   }
 
   /**

@@ -73,6 +73,7 @@ function parseBoolEnv(
 /**
  * Detect storage backend type from environment variables.
  * Uses the same logic as storage factory for consistency.
+ * Checks MERMAID_S3_* prefix (used by CDN) and S3_* or AWS_* prefix (used by storage factory).
  */
 function detectStorageType(): "local" | "s3" | "unknown" {
   const storageType = process.env.STORAGE_TYPE || "auto";
@@ -85,12 +86,12 @@ function detectStorageType(): "local" | "s3" | "unknown" {
     return "s3";
   }
 
-  // Auto-detect: check for S3 credentials
+  // Auto-detect: check for S3 credentials (either MERMAID_S3_* or S3_*/AWS_*)
   const hasS3 =
-    process.env.S3_ENDPOINT &&
-    process.env.S3_BUCKET &&
-    process.env.AWS_ACCESS_KEY_ID &&
-    process.env.AWS_SECRET_ACCESS_KEY;
+    !!(process.env.MERMAID_S3_ENDPOINT || process.env.S3_ENDPOINT) &&
+    !!(process.env.MERMAID_S3_BUCKET || process.env.S3_BUCKET) &&
+    !!(process.env.MERMAID_S3_ACCESS_KEY || process.env.AWS_ACCESS_KEY_ID) &&
+    !!(process.env.MERMAID_S3_SECRET_KEY || process.env.AWS_SECRET_ACCESS_KEY);
 
   // Check for local storage path
   const hasLocal = !!process.env.CONTAINER_STORAGE_PATH;

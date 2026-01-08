@@ -66,9 +66,6 @@ Examples:
   return { dataDir };
 }
 
-// Storage backend (initialized in main())
-let storageBackend: StorageBackend | null = null;
-
 /**
  * Create and start the MCP server.
  * Exported for testing.
@@ -152,6 +149,7 @@ async function main(): Promise<void> {
   const { dataDir } = parseArgs();
 
   // Initialize storage backend - storage is always required
+  let storageBackend: StorageBackend;
   try {
     if (process.env.STORAGE_TYPE === "s3") {
       // S3 mode: use environment-based configuration

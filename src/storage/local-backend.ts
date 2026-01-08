@@ -12,8 +12,9 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, normalize } from "node:path";
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import type {
   LocalStorageConfig,
   StorageBackend,
@@ -184,15 +185,13 @@ export class LocalStorageBackend implements StorageBackend {
       return `http://${host}:${port}/artifacts/${sessionId}/${artifactId}.${extension}`;
     }
 
-    // file:// URL using host path
-    const filePath = join(
-      this.config.hostPath,
-      sessionId,
-      `${artifactId}.${extension}`,
+    // file:// URL using host path with proper normalization
+    const filePath = resolve(
+      normalize(
+        join(this.config.hostPath, sessionId, `${artifactId}.${extension}`),
+      ),
     );
-    // Normalize path separators for file:// URLs
-    const normalizedPath = filePath.replace(/\\/g, "/");
-    return `file://${normalizedPath}`;
+    return pathToFileURL(filePath).href;
   }
 
   /**
@@ -354,7 +353,7 @@ export class LocalStorageBackend implements StorageBackend {
       // Try a quick write/delete operation to verify write access
       const testFile = join(
         this.config.basePath,
-        `.health-check-${Date.now()}`,
+        `.health-check-${randomUUID()}`,
       );
       await writeFile(testFile, "", "utf-8");
       await rm(testFile);

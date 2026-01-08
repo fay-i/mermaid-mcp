@@ -184,7 +184,7 @@ knowledge_base:
   # Learn from code guidelines
   code_guidelines:
     enabled: true
-    file_patterns:
+    filePatterns:
       - "AGENTS.md"
       - "SECURITY.md"
       - "docs/**/*.md"
@@ -197,9 +197,9 @@ knowledge_base:
   issues:
     scope: "global"
 
-# Enable AI code generation assistance
-code_generation:
-  docstrings:
-    enabled: true
-  unit_tests:
-    enabled: true
+# Enable AI code generation assistance (controlled via reviews.finishing_touches)
+# code_generation:
+#   docstrings:
+#     language: "en"
+#   unit_tests:
+#     path_instructions: "tests/**/*"

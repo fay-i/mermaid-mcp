@@ -470,7 +470,7 @@ export async function mermaidToDeckWithStorage(
     curl_command: curlCommand,
     storage_type: storageResult.storage_type,
     content_type: "application/pdf", // Decks are always PDFs
-    size_bytes: storageResult.size_bytes,
+    size_bytes: deckResult.sizeBytes,
     page_count: deckResult.pageCount,
     pages,
     warnings: [],

@@ -32,16 +32,34 @@ export function loadStorageConfig(): StorageConfig {
   // Load local storage config
   const localConfig: LocalStorageConfig | undefined = process.env
     .CONTAINER_STORAGE_PATH
-    ? {
-        basePath: process.env.CONTAINER_STORAGE_PATH,
-        hostPath:
-          process.env.HOST_STORAGE_PATH || process.env.CONTAINER_STORAGE_PATH,
-        urlScheme: (process.env.LOCAL_URL_SCHEME as "file" | "http") || "file",
-        cdnHost: process.env.CDN_HOST || "localhost",
-        cdnPort: process.env.CDN_PORT
-          ? Number.parseInt(process.env.CDN_PORT, 10)
-          : 3001,
-      }
+    ? (() => {
+        // Validate and sanitize LOCAL_URL_SCHEME
+        const rawScheme = process.env.LOCAL_URL_SCHEME;
+        const allowedSchemes: Array<"file" | "http"> = ["file", "http"];
+        const urlScheme: "file" | "http" =
+          rawScheme && allowedSchemes.includes(rawScheme as "file" | "http")
+            ? (rawScheme as "file" | "http")
+            : "file";
+
+        // Validate and sanitize CDN_PORT
+        const rawPort = process.env.CDN_PORT;
+        let cdnPort = 3001; // default
+        if (rawPort) {
+          const parsed = Number.parseInt(rawPort, 10);
+          if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 65535) {
+            cdnPort = parsed;
+          }
+        }
+
+        return {
+          basePath: process.env.CONTAINER_STORAGE_PATH,
+          hostPath:
+            process.env.HOST_STORAGE_PATH || process.env.CONTAINER_STORAGE_PATH,
+          urlScheme,
+          cdnHost: process.env.CDN_HOST || "localhost",
+          cdnPort,
+        };
+      })()
     : undefined;
 
   // Load S3 storage config
@@ -50,16 +68,28 @@ export function loadStorageConfig(): StorageConfig {
     process.env.S3_BUCKET &&
     process.env.AWS_ACCESS_KEY_ID &&
     process.env.AWS_SECRET_ACCESS_KEY
-      ? {
-          endpoint: process.env.S3_ENDPOINT,
-          bucket: process.env.S3_BUCKET,
-          region: process.env.AWS_REGION || "us-east-1",
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-          presignedUrlExpiry: process.env.S3_PRESIGNED_URL_EXPIRY
-            ? Number.parseInt(process.env.S3_PRESIGNED_URL_EXPIRY, 10)
-            : 3600,
-        }
+      ? (() => {
+          // Validate and sanitize S3_PRESIGNED_URL_EXPIRY
+          let presignedUrlExpiry = 3600; // default
+          if (process.env.S3_PRESIGNED_URL_EXPIRY) {
+            const expiry = Number.parseInt(
+              process.env.S3_PRESIGNED_URL_EXPIRY,
+              10,
+            );
+            if (Number.isFinite(expiry) && expiry > 0) {
+              presignedUrlExpiry = expiry;
+            }
+          }
+
+          return {
+            endpoint: process.env.S3_ENDPOINT,
+            bucket: process.env.S3_BUCKET,
+            region: process.env.AWS_REGION || "us-east-1",
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            presignedUrlExpiry,
+          };
+        })()
       : undefined;
 
   const config: StorageConfig = {

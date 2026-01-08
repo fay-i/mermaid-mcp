@@ -12,6 +12,11 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import type { S3Config } from "./s3-config.js";
+import { InvalidArtifactIdError } from "./errors.js";
+
+/** UUID validation regex (RFC 4122) */
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Content type to file extension mapping */
 const CONTENT_TYPE_EXTENSION: Record<string, string> = {
@@ -71,6 +76,11 @@ export class S3Storage {
     content: Buffer,
     contentType: "image/svg+xml" | "application/pdf",
   ): Promise<ArtifactResult> {
+    // Validate artifactId is a proper UUID to prevent injection/path issues
+    if (!UUID_REGEX.test(artifactId)) {
+      throw new InvalidArtifactIdError(artifactId);
+    }
+
     const extension = CONTENT_TYPE_EXTENSION[contentType] ?? "bin";
     const key = `${artifactId}.${extension}`;
 
