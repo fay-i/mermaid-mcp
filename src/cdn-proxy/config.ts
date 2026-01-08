@@ -87,10 +87,10 @@ function detectStorageType(): "local" | "s3" | "unknown" {
 
   // Auto-detect: check for S3 credentials
   const hasS3 =
-    process.env.MERMAID_S3_ENDPOINT &&
-    process.env.MERMAID_S3_BUCKET &&
-    process.env.MERMAID_S3_ACCESS_KEY &&
-    process.env.MERMAID_S3_SECRET_KEY;
+    process.env.S3_ENDPOINT &&
+    process.env.S3_BUCKET &&
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY;
 
   // Check for local storage path
   const hasLocal = !!process.env.CONTAINER_STORAGE_PATH;

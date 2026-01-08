@@ -17,10 +17,17 @@ import type {
  * @throws ConfigurationError if configuration is invalid
  */
 export function loadStorageConfig(): StorageConfig {
-  const storageType = (process.env.STORAGE_TYPE || "auto") as
-    | "local"
-    | "s3"
-    | "auto";
+  const rawStorageType = process.env.STORAGE_TYPE || "auto";
+  const validTypes = ["local", "s3", "auto"] as const;
+
+  // Validate STORAGE_TYPE
+  if (!validTypes.includes(rawStorageType as (typeof validTypes)[number])) {
+    throw new ConfigurationError(
+      `Invalid STORAGE_TYPE: ${rawStorageType}. Must be one of: local, s3, auto`,
+    );
+  }
+
+  const storageType = rawStorageType as "local" | "s3" | "auto";
 
   // Load local storage config
   const localConfig: LocalStorageConfig | undefined = process.env

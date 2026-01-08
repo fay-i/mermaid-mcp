@@ -684,7 +684,12 @@ export async function mermaidToPdfS3(
   // 5. Store in S3 and get presigned URL
   try {
     const pdfBuffer = Buffer.from(renderResult.pdf, "base64");
-    const artifact = await storage.storeArtifact(pdfBuffer, "application/pdf");
+    const artifactId = randomUUID();
+    const artifact = await storage.storeArtifact(
+      artifactId,
+      pdfBuffer,
+      "application/pdf",
+    );
 
     // Generate curl command with output filename
     // Escape single quotes in URL for shell safety (replace ' with '\'' for proper shell escaping)

@@ -41,7 +41,7 @@ npm install
 
 # Set storage to local mode
 export STORAGE_TYPE=local
-export LOCAL_STORAGE_PATH=/tmp/mermaid-artifacts
+export CONTAINER_STORAGE_PATH=/tmp/mermaid-artifacts
 export HOST_STORAGE_PATH=/tmp/mermaid-artifacts
 
 # Build and run
@@ -60,7 +60,7 @@ docker run -d \
   --name mermaid-mcp \
   -v $(pwd)/data/artifacts:/app/data/artifacts \
   -e STORAGE_TYPE=local \
-  -e LOCAL_STORAGE_PATH=/app/data/artifacts \
+  -e CONTAINER_STORAGE_PATH=/app/data/artifacts \
   -e HOST_STORAGE_PATH=$(pwd)/data/artifacts \
   mermaid-mcp:latest
 ```
@@ -77,7 +77,7 @@ services:
       - ./data/artifacts:/app/data/artifacts
     environment:
       - STORAGE_TYPE=local
-      - LOCAL_STORAGE_PATH=/app/data/artifacts
+      - CONTAINER_STORAGE_PATH=/app/data/artifacts
       - HOST_STORAGE_PATH=${PWD}/data/artifacts
 ```
 
@@ -96,7 +96,7 @@ docker-compose logs mermaid-mcp
 
 1. Start server with local storage:
    ```bash
-   STORAGE_TYPE=local LOCAL_STORAGE_PATH=/tmp/artifacts HOST_STORAGE_PATH=/tmp/artifacts node dist/index.js
+   STORAGE_TYPE=local CONTAINER_STORAGE_PATH=/tmp/artifacts HOST_STORAGE_PATH=/tmp/artifacts node dist/index.js
    ```
 
 2. Use MCP Inspector to call `mermaid_to_svg`:
@@ -157,7 +157,7 @@ The MCP server can generate its own architecture diagrams. After implementation:
 
 ```bash
 # Start server locally
-STORAGE_TYPE=local LOCAL_STORAGE_PATH=/tmp/artifacts HOST_STORAGE_PATH=/tmp/artifacts node dist/index.js &
+STORAGE_TYPE=local CONTAINER_STORAGE_PATH=/tmp/artifacts HOST_STORAGE_PATH=/tmp/artifacts node dist/index.js &
 
 # Use MCP to generate architecture diagram
 echo '{
@@ -174,7 +174,7 @@ cat /tmp/artifacts/*/*.svg
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STORAGE_TYPE` | `auto` | `auto`, `local`, or `s3` |
-| `LOCAL_STORAGE_PATH` | `/app/data/artifacts` | Container storage path |
+| `CONTAINER_STORAGE_PATH` | `/app/data/artifacts` | Container storage path |
 | `HOST_STORAGE_PATH` | — | Host path for file:// URLs |
 | `MERMAID_S3_*` | — | S3 credentials (see spec) |
 

@@ -343,6 +343,29 @@ export class LocalStorageBackend implements StorageBackend {
   }
 
   /**
+   * Health check for local storage
+   * Verifies write access and storage availability
+   */
+  async healthCheck(): Promise<boolean> {
+    try {
+      // Check if base path is accessible
+      await stat(this.config.basePath);
+
+      // Try a quick write/delete operation to verify write access
+      const testFile = join(
+        this.config.basePath,
+        `.health-check-${Date.now()}`,
+      );
+      await writeFile(testFile, "", "utf-8");
+      await rm(testFile);
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get storage backend type
    */
   getType(): StorageType {

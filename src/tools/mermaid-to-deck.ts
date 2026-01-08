@@ -266,7 +266,9 @@ export async function mermaidToDeckS3(
 
   let artifact: Awaited<ReturnType<typeof storage.storeArtifact>>;
   try {
+    const artifactId = randomUUID();
     artifact = await storage.storeArtifact(
+      artifactId,
       deckResult.pdfBuffer,
       "application/pdf",
     );

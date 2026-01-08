@@ -3,7 +3,6 @@
  * Handles upload, presigned URL generation, and cleanup.
  */
 
-import { randomUUID } from "node:crypto";
 import {
   S3Client,
   PutObjectCommand,
@@ -62,15 +61,16 @@ export class S3Storage {
   /**
    * Store an artifact and return a presigned download URL.
    *
+   * @param artifactId - UUID for the artifact (or generated if not provided)
    * @param content - Artifact content as Buffer
    * @param contentType - MIME type (image/svg+xml or application/pdf)
    * @returns Artifact reference with presigned URL
    */
   async storeArtifact(
+    artifactId: string,
     content: Buffer,
     contentType: "image/svg+xml" | "application/pdf",
   ): Promise<ArtifactResult> {
-    const artifactId = randomUUID();
     const extension = CONTENT_TYPE_EXTENSION[contentType] ?? "bin";
     const key = `${artifactId}.${extension}`;
 

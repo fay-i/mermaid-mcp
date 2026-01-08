@@ -7,6 +7,7 @@ import type { RequestContext } from "../middleware.js";
 import type { HealthStatus } from "../types.js";
 import type { S3Fetcher } from "../s3-fetcher.js";
 import type { ArtifactCache } from "../cache.js";
+import type { LocalStorageBackend } from "../../storage/local-backend.js";
 import { logRequest, createLogEntry } from "../logger.js";
 import { getDurationMs } from "../middleware.js";
 
@@ -15,6 +16,7 @@ import { getDurationMs } from "../middleware.js";
  */
 export interface HealthHandlerDeps {
   s3Fetcher: S3Fetcher | null;
+  localStorageBackend: LocalStorageBackend | null;
   cache: ArtifactCache | null;
   getUptimeSeconds: () => number;
   storageType?: "local" | "s3" | "unknown";
@@ -34,8 +36,14 @@ export async function handleHealth(
     s3Connected = await deps.s3Fetcher.healthCheck();
   }
 
+  // Check local storage health
+  let localStorageHealthy = false;
+  if (deps.localStorageBackend) {
+    localStorageHealthy = await deps.localStorageBackend.healthCheck();
+  }
+
   const response: HealthStatus = {
-    ok: s3Connected || deps.storageType === "local",
+    ok: s3Connected || localStorageHealthy,
     service: "cdn-proxy",
     s3_connected: s3Connected,
     storage_type: deps.storageType || "unknown",

@@ -110,8 +110,12 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(artifactId, "artifactId");
 
     try {
-      // Use existing S3Storage implementation
-      const result = await this.s3Storage.storeArtifact(content, contentType);
+      // Use existing S3Storage implementation - pass artifactId
+      const result = await this.s3Storage.storeArtifact(
+        artifactId,
+        content,
+        contentType,
+      );
 
       // Convert ArtifactResult to StorageResult
       return {

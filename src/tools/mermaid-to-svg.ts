@@ -557,7 +557,12 @@ export async function mermaidToSvgS3(
   // 5. Store in S3 and get presigned URL
   try {
     const svgBuffer = Buffer.from(renderResult.svg, "utf-8");
-    const artifact = await storage.storeArtifact(svgBuffer, "image/svg+xml");
+    const artifactId = randomUUID();
+    const artifact = await storage.storeArtifact(
+      artifactId,
+      svgBuffer,
+      "image/svg+xml",
+    );
 
     // Generate curl command with output filename
     // Escape single quotes in URL for shell safety (replace ' with '\'' for proper shell escaping)

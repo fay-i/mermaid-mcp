@@ -65,6 +65,20 @@ async function main(): Promise<void> {
         config.localStoragePath,
       );
     }
+  } else if (config.storageType === "unknown") {
+    // Fail fast when storage type is unknown
+    const message =
+      "Storage configuration is ambiguous or missing. " +
+      "Either configure local storage (CONTAINER_STORAGE_PATH) or S3 (S3_ENDPOINT, S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), but not both. " +
+      "Or set STORAGE_TYPE explicitly to 'local' or 's3'.";
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+    throw new Error(message);
   }
 
   // Create cache if enabled
@@ -92,6 +106,7 @@ async function main(): Promise<void> {
         case "health":
           await handleHealth(res, ctx, {
             s3Fetcher,
+            localStorageBackend: storageBackend as LocalStorageBackend | null,
             cache,
             getUptimeSeconds,
             storageType: config.storageType,

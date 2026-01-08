@@ -133,7 +133,7 @@ export type StorageErrorCode =
  *   - STORAGE_TYPE=auto and both local path and S3 credentials configured
  *   - Invalid STORAGE_TYPE value
  */
-export function createStorageBackend(): StorageBackend;
+export async function createStorageBackend(): Promise<StorageBackend>;
 ```
 
 ### Configuration Resolution
@@ -144,7 +144,7 @@ export function createStorageBackend(): StorageBackend;
 | 's3' | Present | S3StorageBackend |
 | 's3' | Missing | ConfigurationError |
 | 'auto' | Present | S3StorageBackend |
-| 'auto' | Missing | LocalStorageBackend |
+| 'auto' | Missing | **ConfigurationError** (neither configured) |
 | 'auto' | Both configured | ConfigurationError |
 
 ---

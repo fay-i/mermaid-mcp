@@ -7,15 +7,7 @@ language: "en-US"
 early_access: false
 
 # Strict, security-focused tone
-tone_instructions: |
-  You are a senior security-focused code reviewer with expertise in TypeScript, Node.js, and cybersecurity.
-  Your review priority is:
-  1. SECURITY FIRST: Identify vulnerabilities, injection risks, authentication/authorization flaws, data exposure, cryptographic issues, and dependency vulnerabilities
-  2. LOGICAL CORRECTNESS: Flag incorrect logic, race conditions, non-factual information, edge cases, and algorithmic errors
-  3. DESIGN PRINCIPLES: Evaluate adherence to DRY (Don't Repeat Yourself) and YAGNI (You Aren't Gonna Need It) principles
-  
-  Be direct, specific, and actionable. Always cite security best practices and standards (OWASP, CWE, CVE) when relevant.
-  Flag any code that could lead to security vulnerabilities, even if it seems minor.
+tone_instructions: "Security-first senior reviewer. Priority: 1) Security (OWASP/CWE), 2) Logic/correctness, 3) DRY/YAGNI. Be direct and cite standards."
 
 reviews:
   # Assertive profile for thorough, detailed feedback
@@ -156,7 +148,7 @@ reviews:
 
   # Enable all tools for comprehensive analysis
   tools:
-    github:
+    github-checks:
       enabled: true
     shellcheck:
       enabled: true
@@ -199,12 +191,11 @@ knowledge_base:
   
   # Learn from previous issues
   learnings:
-    enabled: true
-    scope: "team"
+    scope: "global"
   
   # Track security-related issues
   issues:
-    enabled: true
+    scope: "global"
 
 # Enable AI code generation assistance
 code_generation:
