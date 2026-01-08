@@ -12,7 +12,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { join, resolve, normalize } from "node:path";
+import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import type {
@@ -23,29 +23,10 @@ import type {
 } from "./types.js";
 import {
   ArtifactNotFoundError,
-  InvalidArtifactIdError,
-  InvalidSessionIdError,
   StorageFullError,
   StoragePermissionError,
 } from "./errors.js";
-
-/**
- * UUID validation regex (RFC 4122)
- */
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-/**
- * Validates UUID format to prevent path traversal attacks
- */
-function validateUUID(id: string, fieldName: string): void {
-  if (!UUID_REGEX.test(id)) {
-    if (fieldName === "sessionId") {
-      throw new InvalidSessionIdError(id);
-    }
-    throw new InvalidArtifactIdError(id);
-  }
-}
+import { validateUUID } from "./validation.js";
 
 /**
  * Get file extension from content type
@@ -134,7 +115,11 @@ export class LocalStorageBackend implements StorageBackend {
               cleanedCount++;
             }
           }
-        } catch {}
+        } catch (error) {
+          console.warn(
+            `[LocalStorage] Failed to clean session ${sessionPath}: ${(error as Error).message}`,
+          );
+        }
       }
 
       if (cleanedCount > 0) {
@@ -185,11 +170,11 @@ export class LocalStorageBackend implements StorageBackend {
       return `http://${host}:${port}/artifacts/${sessionId}/${artifactId}.${extension}`;
     }
 
-    // file:// URL using host path with proper normalization
+    // file:// URL using host path
     const filePath = resolve(
-      normalize(
-        join(this.config.hostPath, sessionId, `${artifactId}.${extension}`),
-      ),
+      this.config.hostPath,
+      sessionId,
+      `${artifactId}.${extension}`,
     );
     return pathToFileURL(filePath).href;
   }

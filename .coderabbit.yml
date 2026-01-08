@@ -168,6 +168,14 @@ reviews:
       enabled: true
     semgrep:
       enabled: true
+    checkov:
+      enabled: true
+    osvScanner:
+      enabled: true
+      # Scan dependency manifests for known vulnerabilities
+      paths:
+        - "package.json"
+        - "package-lock.json"
 
 # Chat configuration
 chat:

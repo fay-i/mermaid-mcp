@@ -67,6 +67,42 @@ Examples:
 }
 
 /**
+ * Helper function to register a storage-aware tool with the MCP server.
+ * Handles common pattern: parse params, extract sessionId, call handler, wrap response.
+ */
+function registerStorageTool<TInput, TOutput>(
+  server: McpServer,
+  name: string,
+  description: string,
+  schema: {
+    parse: (params: unknown) => TInput;
+    shape: Record<string, unknown>;
+  },
+  handler: (
+    input: TInput,
+    storage: StorageBackend,
+    sessionId?: string,
+  ) => Promise<TOutput>,
+  storage: StorageBackend,
+): void {
+  server.tool(
+    name,
+    description,
+    schema.shape,
+    async (params: Record<string, unknown>, extra?: RequestHandlerExtra) => {
+      const input = schema.parse(params);
+      const sessionId = extractSessionId(extra);
+      const result = await handler(input, storage, sessionId);
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+        ],
+      };
+    },
+  );
+}
+
+/**
  * Create and start the MCP server.
  * Exported for testing.
  */
@@ -76,7 +112,7 @@ export function createServer(storage: StorageBackend): McpServer {
     version: VERSION,
   });
 
-  // Register healthcheck tool
+  // Register healthcheck tool (no storage needed)
   server.tool(
     healthcheckTool.name,
     healthcheckTool.description,
@@ -91,55 +127,32 @@ export function createServer(storage: StorageBackend): McpServer {
     },
   );
 
-  // Register mermaid_to_svg tool
-  server.tool(
+  // Register storage-aware tools using helper
+  registerStorageTool(
+    server,
     "mermaid_to_svg",
     "Render Mermaid diagram source code to SVG format. Returns a download URL (file:// for local, https:// for S3).",
-    MermaidToSvgInputSchema.shape,
-    async (params: Record<string, unknown>, extra?: RequestHandlerExtra) => {
-      const input = MermaidToSvgInputSchema.parse(params);
-      const sessionId = extractSessionId(extra);
-      const result = await mermaidToSvgWithStorage(input, storage, sessionId);
-      return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
-      };
-    },
+    MermaidToSvgInputSchema,
+    mermaidToSvgWithStorage,
+    storage,
   );
 
-  // Register mermaid_to_pdf tool
-  server.tool(
+  registerStorageTool(
+    server,
     "mermaid_to_pdf",
     "Render Mermaid diagram source code to PDF format. Returns a download URL (file:// for local, https:// for S3).",
-    MermaidToPdfInputSchema.shape,
-    async (params: Record<string, unknown>, extra?: RequestHandlerExtra) => {
-      const input = MermaidToPdfInputSchema.parse(params);
-      const sessionId = extractSessionId(extra);
-      const result = await mermaidToPdfWithStorage(input, storage, sessionId);
-      return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
-      };
-    },
+    MermaidToPdfInputSchema,
+    mermaidToPdfWithStorage,
+    storage,
   );
 
-  // Register mermaid_to_deck tool
-  server.tool(
+  registerStorageTool(
+    server,
     "mermaid_to_deck",
     "Generate a multi-page PDF deck from multiple Mermaid diagrams. Each diagram is rendered on its own page, scaled to fit. Returns a download URL (file:// for local, https:// for S3).",
-    DeckRequestSchema.shape,
-    async (params: Record<string, unknown>, extra?: RequestHandlerExtra) => {
-      const input = DeckRequestSchema.parse(params);
-      const sessionId = extractSessionId(extra);
-      const result = await mermaidToDeckWithStorage(input, storage, sessionId);
-      return {
-        content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
-        ],
-      };
-    },
+    DeckRequestSchema,
+    mermaidToDeckWithStorage,
+    storage,
   );
 
   return server;

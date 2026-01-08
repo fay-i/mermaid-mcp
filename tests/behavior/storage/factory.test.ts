@@ -257,8 +257,9 @@ describe("Storage Factory", () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("[StorageFactory] Selected backend: S3"),
       );
+      // Backend now uses structured logging (JSON format)
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[S3Storage] Backend initialized"),
+        expect.stringContaining("S3 storage backend initialized"),
       );
 
       consoleSpy.mockRestore();

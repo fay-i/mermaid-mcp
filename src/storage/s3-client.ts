@@ -13,10 +13,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import type { S3Config } from "./s3-config.js";
 import { InvalidArtifactIdError } from "./errors.js";
-
-/** UUID validation regex (RFC 4122) */
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { UUID_REGEX } from "./validation.js";
 
 /** Content type to file extension mapping */
 const CONTENT_TYPE_EXTENSION: Record<string, string> = {

@@ -19,30 +19,8 @@ import type {
   StorageType,
 } from "./types.js";
 import { S3Storage } from "./s3-client.js";
-import {
-  ArtifactNotFoundError,
-  InvalidArtifactIdError,
-  InvalidSessionIdError,
-  StorageError,
-} from "./errors.js";
-
-/**
- * UUID validation regex (RFC 4122)
- */
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-/**
- * Validates UUID format to prevent path traversal attacks
- */
-function validateUUID(id: string, fieldName: string): void {
-  if (!UUID_REGEX.test(id)) {
-    if (fieldName === "sessionId") {
-      throw new InvalidSessionIdError(id);
-    }
-    throw new InvalidArtifactIdError(id);
-  }
-}
+import { ArtifactNotFoundError, StorageError } from "./errors.js";
+import { validateUUID } from "./validation.js";
 
 /**
  * S3 storage backend implementation.
@@ -84,7 +62,14 @@ export class S3StorageBackend implements StorageBackend {
    */
   async initialize(): Promise<void> {
     // S3 doesn't require initialization
-    console.error(`[S3Storage] Backend initialized: ${this.config.bucket}`);
+    // Log with structured format for consistency
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level: "info",
+      message: "S3 storage backend initialized",
+      bucket: this.config.bucket,
+    };
+    console.error(JSON.stringify(logEntry));
   }
 
   /**

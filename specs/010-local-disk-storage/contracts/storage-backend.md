@@ -355,7 +355,7 @@ interface HealthResponse {
 
 ### Artifact Endpoint
 
-```
+```http
 GET /artifacts/{sessionId}/{artifactId}.{ext}
 ```
 

@@ -4,12 +4,67 @@
  */
 
 import { ConfigurationError } from "./errors.js";
-import { StorageConfigSchema } from "./schemas.js";
+import { StorageConfigSchema as BaseStorageConfigSchema } from "./schemas.js";
 import type {
   StorageConfig,
   LocalStorageConfig,
   S3StorageConfig,
 } from "./types.js";
+
+/**
+ * Enhanced storage configuration schema with runtime validation refinements
+ */
+const StorageConfigSchema = BaseStorageConfigSchema.refine(
+  (data) => {
+    // storageType==="local" requires localConfig
+    if (data.type === "local" && !data.local) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "STORAGE_TYPE=local requires CONTAINER_STORAGE_PATH",
+  },
+)
+  .refine(
+    (data) => {
+      // storageType==="s3" requires s3Config
+      if (data.type === "s3" && !data.s3) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "STORAGE_TYPE=s3 requires S3_ENDPOINT, S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY",
+    },
+  )
+  .refine(
+    (data) => {
+      // storageType==="auto" cannot have both
+      if (data.type === "auto" && data.local && data.s3) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "STORAGE_TYPE=auto cannot have both local and S3 configured. Choose one or set STORAGE_TYPE explicitly.",
+    },
+  )
+  .refine(
+    (data) => {
+      // storageType==="auto" requires at least one
+      if (data.type === "auto" && !data.local && !data.s3) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "STORAGE_TYPE=auto requires either local (CONTAINER_STORAGE_PATH) or S3 (S3_ENDPOINT, etc.) configuration",
+    },
+  );
 
 /**
  * Load storage configuration from environment variables
@@ -98,36 +153,11 @@ export function loadStorageConfig(): StorageConfig {
     s3: s3Config,
   };
 
-  // Validate configuration
+  // Validate configuration with Zod refinements
   const validation = StorageConfigSchema.safeParse(config);
   if (!validation.success) {
     throw new ConfigurationError(
       `Invalid storage configuration: ${validation.error.message}`,
-    );
-  }
-
-  // Type-specific validation
-  if (storageType === "local" && !localConfig) {
-    throw new ConfigurationError(
-      "STORAGE_TYPE=local requires CONTAINER_STORAGE_PATH",
-    );
-  }
-
-  if (storageType === "s3" && !s3Config) {
-    throw new ConfigurationError(
-      "STORAGE_TYPE=s3 requires S3_ENDPOINT, S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY",
-    );
-  }
-
-  if (storageType === "auto" && localConfig && s3Config) {
-    throw new ConfigurationError(
-      "STORAGE_TYPE=auto cannot have both local and S3 configured. Choose one or set STORAGE_TYPE explicitly.",
-    );
-  }
-
-  if (storageType === "auto" && !localConfig && !s3Config) {
-    throw new ConfigurationError(
-      "STORAGE_TYPE=auto requires either local (CONTAINER_STORAGE_PATH) or S3 (S3_ENDPOINT, etc.) configuration",
     );
   }
 

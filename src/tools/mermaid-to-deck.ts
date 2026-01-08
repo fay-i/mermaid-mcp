@@ -157,20 +157,27 @@ function structuredLog(
 }
 
 /**
- * MCP tool handler: mermaid_to_deck with S3 storage.
- * Generates a multi-page PDF deck from multiple Mermaid diagrams.
- *
- * @param input - Tool input parameters
- * @param storage - S3Storage instance
- * @returns Deck response with download URL or error
+ * Common deck generation pipeline.
+ * Extracts the shared workflow logic from mermaidToDeckS3 and mermaidToDeckWithStorage.
  */
-export async function mermaidToDeckS3(
+async function runDeckPipeline<TStorageResult>(
   input: DeckRequest,
-  storage: S3Storage,
+  requestId: string,
+  correlationId: string,
+  _artifactSessionId: string,
+  storeArtifact: (
+    artifactId: string,
+    pdfBuffer: Buffer,
+    contentType: "application/pdf",
+  ) => Promise<TStorageResult>,
+  buildResponse: (
+    requestId: string,
+    storageResult: TStorageResult,
+    deckResult: Awaited<ReturnType<typeof assembleDeck>>,
+    pages: ReturnType<typeof buildPageMetadata>,
+    curlCommand: string,
+  ) => DeckResponse,
 ): Promise<DeckResponse> {
-  const requestId = randomUUID();
-  const correlationId = generateCorrelationId();
-
   structuredLog("info", correlationId, "Deck generation started", {
     requestId,
     diagramCount: input.diagrams.length,
@@ -258,16 +265,16 @@ export async function mermaidToDeckS3(
     return createErrorResponse(requestId, assemblyError);
   }
 
-  // 6. Store in S3
-  structuredLog("info", correlationId, "Uploading to S3", {
+  // 6. Store artifact
+  structuredLog("info", correlationId, "Storing artifact", {
     requestId,
     sizeBytes: deckResult.sizeBytes,
   });
 
-  let artifact: Awaited<ReturnType<typeof storage.storeArtifact>>;
+  let storageResult: TStorageResult;
   try {
     const artifactId = randomUUID();
-    artifact = await storage.storeArtifact(
+    storageResult = await storeArtifact(
       artifactId,
       deckResult.pdfBuffer,
       "application/pdf",
@@ -277,7 +284,7 @@ export async function mermaidToDeckS3(
       code: "STORAGE_FAILED",
       message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
     };
-    structuredLog("error", correlationId, "S3 upload failed", {
+    structuredLog("error", correlationId, "Storage failed", {
       requestId,
       error: storageError,
     });
@@ -286,41 +293,87 @@ export async function mermaidToDeckS3(
 
   // 7. Build success response
   const pages = buildPageMetadata(input.diagrams);
-  const outputFile = `${artifact.artifact_id}.pdf`;
-  const escapedUrl = artifact.download_url.replace(/'/g, "'\\''");
+  const artifactId = (storageResult as { artifact_id: string }).artifact_id;
+  const downloadUrl = (storageResult as { download_url: string }).download_url;
+  const outputFile = `${artifactId}.pdf`;
+  const escapedUrl = downloadUrl.replace(/'/g, "'\\''");
   const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
 
-  const response: DeckSuccessResponse = {
-    ok: true,
-    request_id: requestId,
-    artifact_id: artifact.artifact_id,
-    download_url: artifact.download_url,
-    curl_command: curlCommand,
-    storage_type: "s3",
-    s3: artifact.s3,
-    expires_in_seconds: artifact.expires_in_seconds,
-    content_type: "application/pdf",
-    size_bytes: deckResult.sizeBytes,
-    page_count: deckResult.pageCount,
+  const response = buildResponse(
+    requestId,
+    storageResult,
+    deckResult,
     pages,
-    warnings: [],
-    errors: [],
-  };
-
-  // Conditionally add CDN URL
-  const cdnBaseUrl = getCdnBaseUrl();
-  if (cdnBaseUrl) {
-    response.cdn_url = buildCdnUrl(cdnBaseUrl, artifact.artifact_id, "pdf");
-  }
+    curlCommand,
+  );
 
   structuredLog("info", correlationId, "Deck generation completed", {
     requestId,
-    artifactId: artifact.artifact_id,
+    artifactId,
     pageCount: deckResult.pageCount,
     sizeBytes: deckResult.sizeBytes,
   });
 
   return response;
+}
+
+/**
+ * MCP tool handler: mermaid_to_deck with S3 storage.
+ * Generates a multi-page PDF deck from multiple Mermaid diagrams.
+ *
+ * @param input - Tool input parameters
+ * @param storage - S3Storage instance
+ * @returns Deck response with download URL or error
+ */
+export async function mermaidToDeckS3(
+  input: DeckRequest,
+  storage: S3Storage,
+): Promise<DeckResponse> {
+  const requestId = randomUUID();
+  const correlationId = generateCorrelationId();
+  const artifactSessionId = randomUUID(); // Not used for S3 but required for interface
+
+  return runDeckPipeline(
+    input,
+    requestId,
+    correlationId,
+    artifactSessionId,
+    // Storage callback
+    async (artifactId, pdfBuffer, contentType) => {
+      return await storage.storeArtifact(artifactId, pdfBuffer, contentType);
+    },
+    // Response builder callback
+    (requestId, storageResult, deckResult, pages, curlCommand) => {
+      const response: DeckSuccessResponse = {
+        ok: true,
+        request_id: requestId,
+        artifact_id: storageResult.artifact_id,
+        download_url: storageResult.download_url,
+        curl_command: curlCommand,
+        storage_type: "s3",
+        s3: storageResult.s3,
+        expires_in_seconds: storageResult.expires_in_seconds,
+        content_type: "application/pdf",
+        size_bytes: deckResult.sizeBytes,
+        page_count: deckResult.pageCount,
+        pages,
+        warnings: [],
+        errors: [],
+      };
+
+      // Conditionally add CDN URL
+      const cdnBaseUrl = getCdnBaseUrl();
+      if (cdnBaseUrl) {
+        response.cdn_url = buildCdnUrl(
+          cdnBaseUrl,
+          storageResult.artifact_id,
+          "pdf",
+        );
+      }
+
+      return response;
+    },
+  );
 }
 
 /**
@@ -341,170 +394,60 @@ export async function mermaidToDeckWithStorage(
   const correlationId = generateCorrelationId();
   const artifactSessionId = sessionId ?? randomUUID(); // Generate default session if not provided
 
-  structuredLog("info", correlationId, "Deck generation started", {
+  return runDeckPipeline(
+    input,
     requestId,
-    diagramCount: input.diagrams.length,
-    pageSize: input.page_size,
-    orientation: input.orientation,
-  });
-
-  // 1. Validate diagrams
-  const diagramsError = validateDiagrams(input.diagrams);
-  if (diagramsError) {
-    structuredLog("error", correlationId, "Validation failed", {
-      requestId,
-      error: diagramsError,
-    });
-    return createErrorResponse(requestId, diagramsError);
-  }
-
-  // 2. Validate timeout
-  const timeoutError = validateTimeout(input.timeout_ms);
-  if (timeoutError) {
-    structuredLog("error", correlationId, "Invalid timeout", {
-      requestId,
-      error: timeoutError,
-    });
-    return createErrorResponse(requestId, timeoutError);
-  }
-
-  // 3. Build render options
-  const timeoutMs = input.timeout_ms ?? DEFAULT_TIMEOUT_MS;
-  const margins = input.margins ?? DEFAULT_MARGINS;
-  const { width, height } = getPageDimensions(
-    input.page_size,
-    input.orientation,
-  );
-
-  const renderOptions: DeckRenderOptions = {
-    diagrams: input.diagrams,
-    pageOptions: {
-      width,
-      height,
-      margins,
-      background: input.background,
-      showTitle: input.show_titles,
+    correlationId,
+    artifactSessionId,
+    // Storage callback
+    async (artifactId, pdfBuffer, contentType) => {
+      return await storage.store(
+        artifactSessionId,
+        artifactId,
+        pdfBuffer,
+        contentType,
+      );
     },
-    theme: input.theme,
-    dropShadow: input.drop_shadow,
-    googleFont: input.google_font,
-    timeoutMs,
-  };
+    // Response builder callback
+    (requestId, storageResult, deckResult, pages, curlCommand) => {
+      const response: DeckSuccessResponse = {
+        ok: true,
+        request_id: requestId,
+        artifact_id: storageResult.artifact_id,
+        download_url: storageResult.download_url,
+        curl_command: curlCommand,
+        storage_type: storageResult.storage_type,
+        content_type: "application/pdf",
+        size_bytes: deckResult.sizeBytes,
+        page_count: deckResult.pageCount,
+        pages,
+        warnings: [],
+        errors: [],
+      };
 
-  // 4. Render all diagrams to PDF pages
-  structuredLog("info", correlationId, "Starting diagram rendering", {
-    requestId,
-    diagramCount: input.diagrams.length,
-  });
+      // Add S3-specific fields if S3 storage
+      if (storageResult.storage_type === "s3") {
+        if (storageResult.s3) {
+          response.s3 = storageResult.s3;
+        }
+        if (storageResult.expires_in_seconds !== undefined) {
+          response.expires_in_seconds = storageResult.expires_in_seconds;
+        }
+      }
 
-  const renderResult = await renderDeck(renderOptions);
+      // Conditionally add CDN URL
+      const cdnBaseUrl = getCdnBaseUrl();
+      if (cdnBaseUrl) {
+        response.cdn_url = buildCdnUrl(
+          cdnBaseUrl,
+          storageResult.artifact_id,
+          "pdf",
+        );
+      }
 
-  if ("error" in renderResult) {
-    structuredLog("error", correlationId, "Rendering failed", {
-      requestId,
-      error: renderResult.error,
-    });
-    return createErrorResponse(requestId, renderResult.error);
-  }
-
-  // 5. Assemble PDF deck
-  structuredLog("info", correlationId, "Assembling PDF deck", {
-    requestId,
-    pageCount: renderResult.pageBuffers.length,
-  });
-
-  let deckResult: Awaited<ReturnType<typeof assembleDeck>>;
-  try {
-    deckResult = await assembleDeck(renderResult.pageBuffers);
-  } catch (error) {
-    const assemblyError: DeckRenderError = {
-      code: "PDF_GENERATION_FAILED",
-      message: `Failed to assemble PDF deck: ${error instanceof Error ? error.message : String(error)}`,
-    };
-    structuredLog("error", correlationId, "PDF assembly failed", {
-      requestId,
-      error: assemblyError,
-    });
-    return createErrorResponse(requestId, assemblyError);
-  }
-
-  // 6. Store using StorageBackend
-  structuredLog("info", correlationId, "Storing artifact", {
-    requestId,
-    sizeBytes: deckResult.sizeBytes,
-    storageType: storage.getType(),
-  });
-
-  let storageResult: Awaited<ReturnType<typeof storage.store>>;
-  try {
-    const artifactId = randomUUID();
-    storageResult = await storage.store(
-      artifactSessionId,
-      artifactId,
-      deckResult.pdfBuffer,
-      "application/pdf",
-    );
-  } catch (error) {
-    const storageError: DeckRenderError = {
-      code: "STORAGE_FAILED",
-      message: `Failed to store artifact: ${error instanceof Error ? error.message : String(error)}`,
-    };
-    structuredLog("error", correlationId, "Storage failed", {
-      requestId,
-      error: storageError,
-    });
-    return createErrorResponse(requestId, storageError);
-  }
-
-  // 7. Build success response
-  const pages = buildPageMetadata(input.diagrams);
-  const outputFile = `${storageResult.artifact_id}.pdf`;
-  const escapedUrl = storageResult.download_url.replace(/'/g, "'\\''");
-  const curlCommand = `curl -o ${outputFile} '${escapedUrl}'`;
-
-  const response: DeckSuccessResponse = {
-    ok: true,
-    request_id: requestId,
-    artifact_id: storageResult.artifact_id,
-    download_url: storageResult.download_url,
-    curl_command: curlCommand,
-    storage_type: storageResult.storage_type,
-    content_type: "application/pdf", // Decks are always PDFs
-    size_bytes: deckResult.sizeBytes,
-    page_count: deckResult.pageCount,
-    pages,
-    warnings: [],
-    errors: [],
-  };
-
-  // Add S3-specific fields if S3 storage
-  if (storageResult.storage_type === "s3") {
-    if (storageResult.s3) {
-      response.s3 = storageResult.s3;
-    }
-    if (storageResult.expires_in_seconds !== undefined) {
-      response.expires_in_seconds = storageResult.expires_in_seconds;
-    }
-  }
-
-  // Conditionally add CDN URL
-  const cdnBaseUrl = getCdnBaseUrl();
-  if (cdnBaseUrl) {
-    response.cdn_url = buildCdnUrl(
-      cdnBaseUrl,
-      storageResult.artifact_id,
-      "pdf",
-    );
-  }
-
-  structuredLog("info", correlationId, "Deck generation completed", {
-    requestId,
-    artifactId: storageResult.artifact_id,
-    pageCount: deckResult.pageCount,
-    sizeBytes: deckResult.sizeBytes,
-  });
-
-  return response;
+      return response;
+    },
+  );
 }
 
 /**
