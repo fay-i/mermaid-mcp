@@ -1,6 +1,6 @@
 {
   "name": "@fay-i/mermaid-mcp",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "MCP server for rendering Mermaid diagrams to vector artifacts",
   "type": "module",
   "main": "dist/index.js",
@@ -16,6 +16,14 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fay-i/mermaid-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fay-i/mermaid-mcp/issues"
+  },
+  "homepage": "https://github.com/fay-i/mermaid-mcp#readme",
   "publishConfig": {
     "access": "public"
   },

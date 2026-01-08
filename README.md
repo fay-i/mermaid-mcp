@@ -2,7 +2,7 @@
 
 Model Context Protocol (MCP) server for rendering Mermaid diagrams to vector artifacts (SVG, PDF). Built with Puppeteer and the official Mermaid CLI for high-quality rendering with customizable themes, fonts, and styling.
 
-![High-Level Architecture](docs/architecture/01-high-level-architecture.svg)
+![High-Level Architecture](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/01-high-level-architecture.svg)
 
 ## Features
 
@@ -142,7 +142,7 @@ export MERMAID_S3_SECRET_KEY=minioadmin
 
 The server exposes four tools via the Model Context Protocol:
 
-![Tools and Inputs](docs/architecture/07-tools-and-inputs.svg)
+![Tools and Inputs](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/07-tools-and-inputs.svg)
 
 ### healthcheck
 
@@ -246,7 +246,7 @@ Combine multiple Mermaid diagrams into a multi-page PDF presentation.
 
 ## Rendering Pipeline
 
-![Rendering Sequence](docs/architecture/02-rendering-sequence.svg)
+![Rendering Sequence](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/02-rendering-sequence.svg)
 
 ### Post-Processing Features
 
@@ -260,11 +260,11 @@ Combine multiple Mermaid diagrams into a multi-page PDF presentation.
 
 The server uses a pluggable storage backend architecture:
 
-![Storage Class Diagram](docs/architecture/03-storage-class-diagram.svg)
+![Storage Class Diagram](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/03-storage-class-diagram.svg)
 
 ### Storage Backend Selection
 
-![Storage Factory](docs/architecture/05-storage-factory.svg)
+![Storage Factory](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/05-storage-factory.svg)
 
 ## Storage Behavior
 
@@ -395,15 +395,15 @@ npm run quality
 
 The server follows a modular architecture with clear separation of concerns:
 
-![High-Level Architecture](docs/architecture/01-high-level-architecture.svg)
+![High-Level Architecture](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/01-high-level-architecture.svg)
 
 ### Request Lifecycle
 
-![Tool Request Lifecycle](docs/architecture/06-tool-request-lifecycle.svg)
+![Tool Request Lifecycle](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/06-tool-request-lifecycle.svg)
 
 ### Deck Assembly Pipeline
 
-![Deck Pipeline](docs/architecture/04-deck-pipeline.svg)
+![Deck Pipeline](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/04-deck-pipeline.svg)
 
 ### Source Code Structure
 
@@ -450,13 +450,13 @@ src/
 
 ## Documentation
 
-- [Architecture Overview](docs/architecture/README.md) - Detailed system architecture
+- [Architecture Overview](https://github.com/fay-i/mermaid-mcp/blob/main/docs/architecture/README.md) - Detailed system architecture
 - [MCP Specification](https://modelcontextprotocol.io/) - Model Context Protocol docs
 - [Mermaid Documentation](https://mermaid.js.org/) - Mermaid diagram syntax
 
 ## License
 
-MIT - See [LICENSE](LICENSE) file for details.
+MIT - See [LICENSE](https://github.com/fay-i/mermaid-mcp/blob/main/LICENSE) file for details.
 
 ## Contributing
 
@@ -464,4 +464,4 @@ MIT - See [LICENSE](LICENSE) file for details.
 2. Run `npm run quality` before every commit
 3. One PR per user story
 4. No skips, ignores, or bypasses in tests or linting
-5. See [AGENTS.md](AGENTS.md) for AI agent guidelines
+5. See [AGENTS.md](https://github.com/fay-i/mermaid-mcp/blob/main/AGENTS.md) for AI agent guidelines
