@@ -29,10 +29,10 @@ import { validateUUID } from "./validation.js";
 export class S3StorageBackend implements StorageBackend {
   private readonly s3Storage: S3Storage;
   private readonly s3Client: S3Client;
-  private readonly config: S3StorageConfig;
+  private readonly bucket: string;
 
   constructor(config: S3StorageConfig) {
-    this.config = config;
+    this.bucket = config.bucket;
 
     // Create S3Storage instance for upload operations
     this.s3Storage = new S3Storage({
@@ -67,7 +67,7 @@ export class S3StorageBackend implements StorageBackend {
       timestamp: new Date().toISOString(),
       level: "info",
       message: "S3 storage backend initialized",
-      bucket: this.config.bucket,
+      bucket: this.bucket,
     };
     console.error(JSON.stringify(logEntry));
   }
@@ -84,7 +84,7 @@ export class S3StorageBackend implements StorageBackend {
       try {
         await this.s3Client.send(
           new HeadObjectCommand({
-            Bucket: this.config.bucket,
+            Bucket: this.bucket,
             Key: key,
           }),
         );
@@ -164,7 +164,7 @@ export class S3StorageBackend implements StorageBackend {
     try {
       const response = await this.s3Client.send(
         new GetObjectCommand({
-          Bucket: this.config.bucket,
+          Bucket: this.bucket,
           Key: key,
         }),
       );
@@ -204,7 +204,7 @@ export class S3StorageBackend implements StorageBackend {
         // First verify existence with HeadObjectCommand
         await this.s3Client.send(
           new HeadObjectCommand({
-            Bucket: this.config.bucket,
+            Bucket: this.bucket,
             Key: key,
           }),
         );
@@ -212,7 +212,7 @@ export class S3StorageBackend implements StorageBackend {
         // Object exists, now delete it
         await this.s3Client.send(
           new DeleteObjectCommand({
-            Bucket: this.config.bucket,
+            Bucket: this.bucket,
             Key: key,
           }),
         );
@@ -251,7 +251,7 @@ export class S3StorageBackend implements StorageBackend {
       try {
         await this.s3Client.send(
           new HeadObjectCommand({
-            Bucket: this.config.bucket,
+            Bucket: this.bucket,
             Key: key,
           }),
         );
@@ -304,7 +304,7 @@ export class S3StorageBackend implements StorageBackend {
       case "NoSuchBucket":
         return new StorageError(
           "STORAGE_UNAVAILABLE",
-          `S3 bucket not found: ${this.config.bucket}`,
+          `S3 bucket not found: ${this.bucket}`,
         );
 
       default:
