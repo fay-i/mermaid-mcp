@@ -8,9 +8,12 @@
 import {
   S3Client,
   GetObjectCommand,
+  type GetObjectCommandOutput,
   DeleteObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "node:stream";
 import type {
   S3StorageConfig,
@@ -18,34 +21,25 @@ import type {
   StorageResult,
   StorageType,
 } from "./types.js";
-import { S3Storage } from "./s3-client.js";
 import { ArtifactNotFoundError, StorageError } from "./errors.js";
 import { validateUUID } from "./validation.js";
 
 /**
  * S3 storage backend implementation.
- * Wraps existing S3Storage and provides StorageBackend interface.
+ * Provides StorageBackend interface using S3Client directly.
  */
 export class S3StorageBackend implements StorageBackend {
-  private readonly s3Storage: S3Storage;
   private readonly s3Client: S3Client;
   private readonly bucket: string;
+  private readonly region: string;
+  private readonly presignedUrlExpiry: number;
 
   constructor(config: S3StorageConfig) {
     this.bucket = config.bucket;
+    this.region = config.region;
+    this.presignedUrlExpiry = config.presignedUrlExpiry;
 
-    // Create S3Storage instance for upload operations
-    this.s3Storage = new S3Storage({
-      endpoint: config.endpoint,
-      bucket: config.bucket,
-      region: config.region,
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey,
-      presignedUrlExpiresIn: config.presignedUrlExpiry,
-      retentionDays: 7, // Default retention for cleanup
-    });
-
-    // Create S3Client for retrieve/delete/exists operations
+    // Create S3Client for all storage operations
     this.s3Client = new S3Client({
       endpoint: config.endpoint,
       region: config.region,
@@ -77,8 +71,14 @@ export class S3StorageBackend implements StorageBackend {
    * Returns the key if found, null if not found.
    * Throws on operational errors (non-NotFound S3 errors).
    */
-  private async findArtifactKey(artifactId: string): Promise<string | null> {
-    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
+  private async findArtifactKey(
+    sessionId: string,
+    artifactId: string,
+  ): Promise<string | null> {
+    const keys = [
+      `${sessionId}/${artifactId}.svg`,
+      `${sessionId}/${artifactId}.pdf`,
+    ];
 
     for (const key of keys) {
       try {
@@ -104,7 +104,7 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   /**
-   * Store an artifact using existing S3Storage.storeArtifact()
+   * Store an artifact using session-scoped S3 keys
    */
   async store(
     sessionId: string,
@@ -117,22 +117,47 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(artifactId, "artifactId");
 
     try {
-      // Use existing S3Storage implementation - pass artifactId
-      const result = await this.s3Storage.storeArtifact(
-        artifactId,
-        content,
-        contentType,
+      // Determine file extension from content type
+      const extension = contentType === "image/svg+xml" ? "svg" : "pdf";
+
+      // Compose session-scoped S3 key
+      const key = `${sessionId}/${artifactId}.${extension}`;
+
+      // Upload to S3 with session-scoped key
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: content,
+          ContentType: contentType,
+          Metadata: {
+            "created-at": new Date().toISOString(),
+          },
+        }),
       );
 
-      // Convert ArtifactResult to StorageResult
+      // Generate presigned URL for download
+      const downloadUrl = await getSignedUrl(
+        this.s3Client,
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+        { expiresIn: this.presignedUrlExpiry },
+      );
+
       return {
-        artifact_id: result.artifact_id,
-        download_url: result.download_url,
+        artifact_id: artifactId,
+        download_url: downloadUrl,
         content_type: contentType,
-        size_bytes: result.size_bytes,
+        size_bytes: content.length,
         storage_type: "s3",
-        expires_in_seconds: result.expires_in_seconds,
-        s3: result.s3,
+        expires_in_seconds: this.presignedUrlExpiry,
+        s3: {
+          bucket: this.bucket,
+          key,
+          region: this.region,
+        },
       };
     } catch (error) {
       // Map S3 errors to StorageError codes
@@ -151,7 +176,7 @@ export class S3StorageBackend implements StorageBackend {
     // Find the artifact key
     let key: string | null;
     try {
-      key = await this.findArtifactKey(artifactId);
+      key = await this.findArtifactKey(sessionId, artifactId);
     } catch (error) {
       throw this.mapS3Error(error, "retrieve", sessionId, artifactId);
     }
@@ -160,31 +185,33 @@ export class S3StorageBackend implements StorageBackend {
       throw new ArtifactNotFoundError(sessionId, artifactId);
     }
 
-    // Retrieve the artifact content
+    // Retrieve the artifact content - narrow try block to only network call
+    let response: GetObjectCommandOutput;
     try {
-      const response = await this.s3Client.send(
+      response = await this.s3Client.send(
         new GetObjectCommand({
           Bucket: this.bucket,
           Key: key,
         }),
       );
-
-      if (!response.Body) {
-        throw new ArtifactNotFoundError(sessionId, artifactId);
-      }
-
-      // Convert stream to buffer
-      const chunks: Buffer[] = [];
-      const readable = response.Body as Readable;
-
-      for await (const chunk of readable) {
-        chunks.push(Buffer.from(chunk));
-      }
-
-      return Buffer.concat(chunks);
     } catch (error) {
       throw this.mapS3Error(error, "retrieve", sessionId, artifactId);
     }
+
+    // Check response body outside the try/catch to avoid remapping domain errors
+    if (!response.Body) {
+      throw new ArtifactNotFoundError(sessionId, artifactId);
+    }
+
+    // Convert stream to buffer
+    const chunks: Buffer[] = [];
+    const readable = response.Body as Readable;
+
+    for await (const chunk of readable) {
+      chunks.push(Buffer.from(chunk));
+    }
+
+    return Buffer.concat(chunks);
   }
 
   /**
@@ -195,43 +222,28 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Try to find and delete artifact with both possible extensions
-    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
-
-    let found = false;
-    for (const key of keys) {
-      try {
-        // First verify existence with HeadObjectCommand
-        await this.s3Client.send(
-          new HeadObjectCommand({
-            Bucket: this.bucket,
-            Key: key,
-          }),
-        );
-
-        // Object exists, now delete it
-        await this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: this.bucket,
-            Key: key,
-          }),
-        );
-
-        found = true;
-        break; // Only one extension should exist
-      } catch (error) {
-        // NotFound/NoSuchKey error means try next extension
-        const errorName = (error as { name?: string }).name;
-        if (errorName === "NotFound" || errorName === "NoSuchKey") {
-          continue;
-        }
-        // Other errors are real failures - propagate them
-        throw this.mapS3Error(error, "delete", sessionId, artifactId);
-      }
+    // Find the artifact key using the helper
+    let key: string | null;
+    try {
+      key = await this.findArtifactKey(sessionId, artifactId);
+    } catch (error) {
+      throw this.mapS3Error(error, "delete", sessionId, artifactId);
     }
 
-    if (!found) {
+    if (!key) {
       throw new ArtifactNotFoundError(sessionId, artifactId);
+    }
+
+    // Delete the artifact
+    try {
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      throw this.mapS3Error(error, "delete", sessionId, artifactId);
     }
   }
 
@@ -244,30 +256,14 @@ export class S3StorageBackend implements StorageBackend {
     validateUUID(sessionId, "sessionId");
     validateUUID(artifactId, "artifactId");
 
-    // Check both extensions
-    const keys = [`${artifactId}.svg`, `${artifactId}.pdf`];
-
-    for (const key of keys) {
-      try {
-        await this.s3Client.send(
-          new HeadObjectCommand({
-            Bucket: this.bucket,
-            Key: key,
-          }),
-        );
-        return true; // Found
-      } catch (error) {
-        // NotFound/NoSuchKey error means try next extension
-        const errorName = (error as { name?: string }).name;
-        if (errorName === "NotFound" || errorName === "NoSuchKey") {
-          continue;
-        }
-        // Other errors are operational failures - propagate them
-        throw this.mapS3Error(error, "exists", sessionId, artifactId);
-      }
+    // Use findArtifactKey helper to check for existence
+    try {
+      const key = await this.findArtifactKey(sessionId, artifactId);
+      return key !== null;
+    } catch (error) {
+      // Propagate operational errors (network, access denied, etc.)
+      throw this.mapS3Error(error, "exists", sessionId, artifactId);
     }
-
-    return false; // Not found with any extension
   }
 
   /**
@@ -286,6 +282,11 @@ export class S3StorageBackend implements StorageBackend {
     sessionId: string,
     artifactId: string,
   ): StorageError {
+    // Don't double-wrap errors that are already StorageError instances
+    if (error instanceof StorageError) {
+      return error;
+    }
+
     const err = error as { name?: string; message?: string; Code?: string };
 
     // Map common S3 errors

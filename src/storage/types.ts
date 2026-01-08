@@ -142,6 +142,8 @@ export interface S3StorageConfig {
   accessKeyId: string;
   secretAccessKey: string;
   presignedUrlExpiry: number;
+  /** Artifact retention in days (default: 7) */
+  retentionDays?: number;
 }
 
 /**
