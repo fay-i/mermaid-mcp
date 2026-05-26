@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Ensure Chrome for Puppeteer
+        run: npx puppeteer browsers install chrome-headless-shell
+
       - name: Run quality checks
         run: npm run quality
 
