@@ -1,0 +1,35 @@
+---
+description: Research existing codebase context for a feature spec
+globs:
+  - "specs/*/plan.md"
+---
+
+# bk-plan — The CONTEXT (Research Only)
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh plan`. If it fails, stop and relay its error message to the user.
+
+When researching codebase context for a feature:
+
+1. Read the constitution at `.behavior-kit/memory/constitution.md`
+2. Read the spec at `specs/NNN-feature-name/spec.md`
+3. **Dependency / duplication gate (REQUIRED — before any codebase research).** Enumerate every other in-flight spec to make sure this one isn't duplicating effort or silently depending on work that hasn't landed yet:
+   - List sibling spec dirs with `ls -1d specs/[0-9]*-*` and inspect the union of their `spec.md`, `plan.md`, and `behaviors.md` files (some will not exist yet — that's fine).
+   - Also enumerate active worktrees via `git worktree list` so you can see which specs are being worked on right now.
+   - For each sibling, decide whether the current spec **(a) overlaps in scope**, **(b) depends on an unmerged artifact**, or **(c) is independent**.
+   - If you find any (a) or (b) match, **STOP and force a turn with the user**. Quote the sibling spec ID and the specific overlap/dependency, and offer the obvious choices (wait, absorb, narrow scope, proceed anyway). Do not continue until the user answers.
+   - Record the decision in the plan's "Dependencies / coordination" section for every sibling considered.
+4. Use the plan template at `.behavior-kit/templates/plan-template.md`
+5. Explore the existing codebase: patterns, conventions, relevant files
+6. Write the plan to `specs/NNN-feature-name/plan.md`
+
+## Rules
+- Document EXISTING patterns, not proposed ones
+- Reference snippets come from EXISTING code only
+- Open questions must include a proposed answer
+
+## Forbidden
+- Inventing data models or schemas
+- Proposing API contracts or endpoint shapes
+- Suggesting project structure or new directories
+- Writing new code or pseudocode
+- Making architectural decisions not already present in the codebase

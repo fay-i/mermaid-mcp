@@ -1,0 +1,38 @@
+---
+description: Address PR review feedback one comment at a time
+globs:
+  - "specs/*/review.md"
+---
+
+# bk-iterate — Address PR Review Feedback
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh iterate`. If it fails, stop and relay its error message to the user. Then verify an open PR exists via `gh pr view --json number,state`.
+
+When addressing PR review feedback:
+
+1. Read the constitution, spec, and behaviors for context
+2. Fetch all review feedback via `gh` (inline comments, PR comments, review summaries)
+3. Read existing `review.md` — skip already-addressed items
+4. Categorize each comment: **actionable** (code change), **question** (reply only), **acknowledgment** (note only)
+5. For each actionable comment:
+   a. Make the change (test-first if new behavior needed)
+   b. Ensure tests pass
+   c. Reply on GitHub and resolve the thread
+   d. Commit: `R{round}.{seq}: [description]`
+6. For questions, reply with explanation on GitHub
+7. Update `specs/NNN-feature-name/review.md` using the review template
+
+## Rules
+- One comment per commit for actionable items
+- Tests must stay passing after every change
+- Reply to every actionable and question comment
+- Never argue with feedback — address it or ask for guidance
+- Commit format: `R1.01: [description]`
+
+## Forbidden
+- Batch-addressing multiple comments in one commit
+- Ignoring or skipping comments
+- Making unrelated code changes
+- Force-pushing
+- Resolving threads without addressing the feedback
+- Weakening or removing tests

@@ -1,0 +1,29 @@
+---
+description: Start a lightweight pairing session — branch + worktree, no spec/plan/behaviors workflow
+globs:
+  - "**/*"
+---
+
+# bk-session — Pairing / One-off Session
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh session`. If it fails, stop and relay its error message to the user.
+
+When starting a lightweight pairing or QA session (one-off fix, refactor, tweak — anything that doesn't warrant the full spec → plan → behaviors → implement pipeline):
+
+1. Read the constitution at `.behavior-kit/memory/constitution.md`
+2. **Establish the purpose.** If the user provided one, use it. Otherwise ask: *"What's this session for? (one or two sentences)"* and wait.
+3. **Pick a conventional-commit tag**: `fix`, `chore`, `refactor`, `docs`, `test`, `ci`, `build`, `perf`, `style`, or `revert`. Never `feat` — route real features through `/bk.specify`.
+4. **Derive a 3-5 word kebab-case slug** summarizing the purpose.
+5. Run `.behavior-kit/scripts/init-session.sh <tag> "<slug>"`. It creates the `{tag}/{slug}` branch (and `.worktrees/{tag}-{slug}/` when worktrees are enabled). The last line is the path to operate in.
+6. **When worktrees are enabled**, tell the user to `cd` into the new worktree before continuing.
+7. Pair with the user freely — no behaviors.md, no per-behavior commits. Constitution still applies.
+
+## Rules
+- One purpose per session.
+- The branch name carries intent — pick tag and slug accurately.
+- Sessions never enter the spec workflow. `/bk.plan`, `/bk.behaviors`, `/bk.implement`, `/bk.iterate` will refuse a session branch.
+
+## Forbidden
+- Using the `feat` tag.
+- Writing a markdown artifact for the session.
+- Running other `/bk.*` phases on the session branch.

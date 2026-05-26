@@ -1,0 +1,32 @@
+---
+description: Implement behaviors one at a time using test-first development
+globs:
+  - "specs/*/behaviors.md"
+---
+
+# bk-implement — Execute Behaviors
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh implement`. If it fails, stop and relay its error message to the user.
+
+When implementing behaviors:
+
+1. Read the constitution and behaviors for the feature
+2. Find the next unimplemented behavior (in dependency order)
+3. For each behavior:
+   a. Write the test first — it must fail
+   b. Implement the minimum code to make it pass
+   c. Refactor if needed (tests must still pass)
+   d. Commit: `B001: [behavior description]`
+4. Let architecture emerge — create models/services/helpers only when a behavior demands them
+
+## Rules
+- One behavior at a time, in dependency order
+- Test-first: red → green → refactor
+- Each behavior gets its own commit
+- Follow existing codebase patterns from the plan phase
+
+## Forbidden
+- Batch implementation (multiple behaviors at once)
+- Pre-creating project structure or boilerplate
+- Abstractions "for later" or "for extensibility"
+- Skipping the failing test step

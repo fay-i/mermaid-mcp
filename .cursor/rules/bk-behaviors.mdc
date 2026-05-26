@@ -1,0 +1,39 @@
+---
+description: Decompose acceptance criteria into atomic, testable behaviors
+globs:
+  - "specs/*/behaviors.md"
+---
+
+# bk-behaviors — The HOW (as Testable Behaviors)
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh behaviors`. If it fails, stop and relay its error message to the user.
+
+When decomposing a spec into behaviors:
+
+1. Read the constitution, spec, and plan for the feature
+2. Use the behavior template at `.behavior-kit/templates/behavior-template.md`
+3. For each acceptance criterion, decompose into atomic behaviors
+4. Each behavior: Action + Input + Output + Test mapping
+5. Add branches for error cases, empty states, edge cases
+6. Build a coverage matrix: every AC maps to at least one behavior
+
+## Behavior Format
+```
+## B001: [Action verb phrase]
+**From**: AC-1 | **Depends on**: —
+**Action**: [What] | **Input**: [What] | **Output**: [What]
+**Test**: Given [...], when [...], then [...]
+### Branches
+- **B001a: [Variant]** Input: [...] | Output: [...] | Test: [...]
+```
+
+## Rules
+- B-numbers (B001, B002...), branches (B001a, B001b...)
+- Every behavior traces to an AC via "From"
+- Order by dependency, not by layer
+
+## Forbidden
+- Organizing by layer (models → services → controllers)
+- Specifying file paths or module names
+- "Setup" or "scaffolding" tasks
+- Implementation hints or technology choices

@@ -1,0 +1,29 @@
+---
+description: Generate a behavior-first spec with Given/When/Then acceptance criteria
+globs:
+  - "specs/*/spec.md"
+---
+
+# bk-specify — The WHAT and WHY
+
+**Gate:** Before anything else, run `.behavior-kit/scripts/check-prereqs.sh specify`. If it fails, stop and relay its error message to the user.
+
+When writing a feature specification:
+
+1. Read the constitution at `.behavior-kit/memory/constitution.md`
+2. Derive a short feature name — a 3-5 word kebab-case summary, not the full description (e.g. `create-grow-screen`) — then run `.behavior-kit/scripts/init-feature.sh "<short-feature-name>"` to create the feature branch and directory. When the constitution has `Worktrees: enabled`, the script also creates a dedicated `.worktrees/NNN-<slug>/` checkout and the spec dir lives inside it; `cd` into that worktree before running any further `/bk.*` commands.
+3. Use the spec template at `.behavior-kit/templates/spec-template.md`
+4. Ask up to 3 inline clarification questions if needed
+5. Write the spec to `specs/NNN-feature-name/spec.md`
+
+## Rules
+- User story format: As a [role], I want to [action], So that [outcome]
+- Every acceptance criterion uses Given/When/Then
+- Include edge cases and out-of-scope sections
+
+## Forbidden
+- Technology mentions (frameworks, languages, databases)
+- Data models or schemas
+- API shapes or endpoint definitions
+- FR-tables or numbered requirement lists
+- Implementation checklists
