@@ -51,7 +51,7 @@ jobs:
       # in repository settings. Reports are available as artifacts below.
 
       - name: Upload report artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-check-report
@@ -82,7 +82,7 @@ jobs:
         run: npm audit --json > npm-audit-report.json || true
 
       - name: Upload npm audit report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: npm-audit-report
