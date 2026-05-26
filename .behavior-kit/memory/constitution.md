@@ -24,6 +24,16 @@ Each phase loads only what it needs. Specify loads the constitution. Plan loads 
 ## Article VIII — Self-Documenting Code
 Code should be readable without comments. Use clear names, small functions, and obvious structure. Add comments only where the WHY isn't self-evident. DocC/JSDoc for public APIs only.
 
+## Article IX — Deterministic Output
+Same input must produce same output. Diagrams are reproducible across runs and environments. Non-determinism (timestamps, random IDs, locale-dependent formatting) is a bug, not a feature.
+
+## Article X — MCP Tool Contracts (NON-NEGOTIABLE)
+Every MCP tool has explicit input/output JSON schemas, stable and documented error codes, and behavior tests covering valid input, invalid input, renderer failure, timeout, and resource cleanup. Tool contracts are the public API — break them with a major version bump or not at all.
+
+## Article XI — Resource Cleanup
+Browser instances, temp files, child processes, and file handles are released on every code path, including failures and timeouts. Leaks are bugs of the same severity as wrong output.
+
 ---
 
-_Add project-specific articles below (Article IX+):_
+Worktrees: enabled
+Ratified: 2026-05-26
