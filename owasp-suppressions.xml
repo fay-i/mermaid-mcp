@@ -50,4 +50,40 @@
     <cve>CVE-2021-42694</cve>
   </suppress>
 
+  <!--
+    CVE-2026-23864: OWASP DC CPE-matching false positive against react
+
+    OWASP Dependency Check matches the npm `react` package against the CPE
+    `cpe:2.3:a:facebook:react`, which is shared with unrelated products and
+    historically produces false positives. The official npm advisory database
+    (npm audit) and GitHub Security Advisories list NO CVE affecting
+    `react` >= 0.14.0 as of 2026-05-26 — only ancient pre-0.14 XSS issues.
+
+    Why NOT applicable to mermaid-mcp:
+
+    1. TRANSITIVE DEV-ONLY DEPENDENCY: react is pulled in via
+       @mermaid-js/mermaid-cli -> @mermaid-js/mermaid-zenuml -> @zenuml/core
+       solely so the ZenUML diagram type can render inside the headless
+       browser. We never ship React to end users.
+
+    2. OUTPUT IS STATIC SVG: The server runs Mermaid (incl. ZenUML) in a
+       sandboxed puppeteer page, serializes the rendered SVG, and returns
+       the SVG string. No React runtime is exposed to clients.
+
+    3. NO LIVE ADVISORY: `npm audit` returns 0 vulnerabilities for the full
+       tree on this lockfile. The CVE only fires through OWASP DC's CPE
+       matcher, which is the classic source of react FPs.
+
+    Approved: 2026-05-26
+  -->
+  <suppress>
+    <notes><![CDATA[
+      False positive from OWASP DC CPE matcher against npm `react`.
+      No matching advisory in npm/GHSA databases for react >= 0.14.0.
+      React is transitive via @mermaid-js/mermaid-cli; output is static SVG.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/react@.*$</packageUrl>
+    <cve>CVE-2026-23864</cve>
+  </suppress>
+
 </suppressions>
