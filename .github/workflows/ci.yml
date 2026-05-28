@@ -26,13 +26,17 @@ jobs:
         run: npm ci
 
       - name: Ensure Chrome for Puppeteer
-        # Clear any partially-extracted cache from a previous run.
-        # `puppeteer browsers install` skips download when the target
-        # directory exists, so a partial cache (folder without binary)
-        # poisons subsequent runs.
+        # `npm ci` runs puppeteer's postinstall which can leave a partial
+        # ~/.cache/puppeteer (folder without binary). `puppeteer browsers
+        # install` then exits early because the folder exists, poisoning
+        # every subsequent run. Wipe the cache and reinstall explicitly,
+        # then assert the binary actually landed.
         run: |
+          set -ex
           rm -rf ~/.cache/puppeteer
           npx puppeteer browsers install chrome-headless-shell
+          ls -la ~/.cache/puppeteer
+          test -x "$(find ~/.cache/puppeteer/chrome-headless-shell -name chrome-headless-shell -type f | head -1)"
 
       - name: Run quality checks
         run: npm run quality
