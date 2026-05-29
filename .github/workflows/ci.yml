@@ -26,17 +26,23 @@ jobs:
         run: npm ci
 
       - name: Ensure Chrome for Puppeteer
-        # `npm ci` runs puppeteer's postinstall which can leave a partial
-        # ~/.cache/puppeteer (folder without binary). `puppeteer browsers
-        # install` then exits early because the folder exists, poisoning
-        # every subsequent run. Wipe the cache and reinstall explicitly,
-        # then assert the binary actually landed.
+        # `npx puppeteer browsers install` is broken on this stack:
+        # `extract-zip` 2.0.1 (transitive via @puppeteer/browsers 2.6.1)
+        # silently stops after a couple of files on Node 24, then resolves
+        # the install promise with success — leaving a folder without the
+        # binary. Reproduce on macOS too, so it's not CI-specific. Bypass
+        # the broken extractor: download the pinned build directly and
+        # unzip with the system tool.
         run: |
           set -ex
           rm -rf ~/.cache/puppeteer
-          npx puppeteer browsers install chrome-headless-shell
-          ls -la ~/.cache/puppeteer
-          test -x "$(find ~/.cache/puppeteer/chrome-headless-shell -name chrome-headless-shell -type f | head -1)"
+          BUILD_ID=$(node -p "require('puppeteer-core/internal/revisions.js').PUPPETEER_REVISIONS['chrome-headless-shell']")
+          INSTALL_DIR="$HOME/.cache/puppeteer/chrome-headless-shell/linux-$BUILD_ID"
+          mkdir -p "$INSTALL_DIR"
+          curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/$BUILD_ID/linux64/chrome-headless-shell-linux64.zip" -o /tmp/chs.zip
+          unzip -q /tmp/chs.zip -d "$INSTALL_DIR"
+          rm /tmp/chs.zip
+          test -x "$INSTALL_DIR/chrome-headless-shell-linux64/chrome-headless-shell"
 
       - name: Run quality checks
         run: npm run quality
