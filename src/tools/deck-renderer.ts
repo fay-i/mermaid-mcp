@@ -160,17 +160,25 @@ async function htmlToPdf(
       }, remainingMs);
     });
 
-    await page.setContent(htmlPage.html, { waitUntil: "networkidle0" });
-
-    const pdfPromise = page.pdf({
-      printBackground: true,
-      width: htmlPage.width,
-      height: htmlPage.height,
-      pageRanges: "1",
-      scale: 1,
-    });
-    // Same rationale as renderDiagramToSvg: if timeout wins, the page will
-    // be closed in the finally block and page.pdf() rejects afterwards.
+    // Race the full PDF pipeline (setContent + pdf) against the timeout as a
+    // single work promise. Awaiting setContent outside the race left two bugs:
+    // a hung setContent (networkidle0 never settling) escaped the timeout
+    // budget, and a timeout firing during that await rejected timeoutPromise
+    // before the race attached a handler, surfacing as an unhandled
+    // PDF_TIMEOUT rejection. Mirrors renderDiagramToSvg's structure.
+    const pdfPromise = (async () => {
+      await page.setContent(htmlPage.html, { waitUntil: "networkidle0" });
+      return page.pdf({
+        printBackground: true,
+        width: htmlPage.width,
+        height: htmlPage.height,
+        pageRanges: "1",
+        scale: 1,
+      });
+    })();
+    // If timeout wins, the page is closed in the finally block and the
+    // in-flight pipeline rejects afterwards; consume it so the post-timeout
+    // rejection cannot escape as an unhandled rejection.
     pdfPromise.catch(() => {});
 
     const pdfBytes = await Promise.race([pdfPromise, timeoutPromise]);
