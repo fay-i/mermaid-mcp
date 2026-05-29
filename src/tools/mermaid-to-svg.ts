@@ -190,19 +190,22 @@ async function renderWithTimeout(
       }, timeoutMs);
     });
 
+    const renderPromise = render(browser, {
+      code,
+      theme,
+      background,
+      config,
+      timeoutMs,
+      dropShadow,
+      googleFont,
+    });
+    // If timeout wins the race, the browser is closed in the finally block
+    // and the in-flight render rejects with "Target closed". Attach a no-op
+    // handler so the post-timeout rejection cannot escape as unhandled.
+    renderPromise.catch(() => {});
+
     // Race render against timeout
-    const result = await Promise.race([
-      render(browser, {
-        code,
-        theme,
-        background,
-        config,
-        timeoutMs,
-        dropShadow,
-        googleFont,
-      }),
-      timeoutPromise,
-    ]);
+    const result = await Promise.race([renderPromise, timeoutPromise]);
 
     return { svg: result.svg };
   } catch (error) {

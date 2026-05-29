@@ -85,6 +85,11 @@ async function renderDiagramToSvg(
       googleFont,
       timeoutMs: remainingMs,
     });
+    // If timeout wins the race, the browser will be closed in renderDeck's
+    // finally block. The in-flight render then rejects with "Target closed".
+    // Attach a no-op handler so that post-timeout rejection cannot escape
+    // as an unhandled rejection.
+    renderPromise.catch(() => {});
 
     const result = await Promise.race([renderPromise, timeoutPromise]);
     clearTimeout(timeoutId);
@@ -164,6 +169,9 @@ async function htmlToPdf(
       pageRanges: "1",
       scale: 1,
     });
+    // Same rationale as renderDiagramToSvg: if timeout wins, the page will
+    // be closed in the finally block and page.pdf() rejects afterwards.
+    pdfPromise.catch(() => {});
 
     const pdfBytes = await Promise.race([pdfPromise, timeoutPromise]);
     clearTimeout(timeoutId);
