@@ -1,22 +1,24 @@
 # Mermaid MCP Server
 
-Model Context Protocol (MCP) server for rendering Mermaid diagrams to vector artifacts (SVG, PDF). Built with Puppeteer and the official Mermaid CLI for high-quality rendering with customizable themes, fonts, and styling.
+Mermaid MCP Server is a TypeScript Model Context Protocol server for rendering Mermaid diagrams from MCP clients and AI coding workflows. It turns Mermaid source into SVG, PDF, and multi-page deck artifacts using Puppeteer, Mermaid CLI, and pdf-lib, with configurable themes, fonts, storage, and download URLs.
+
+Use it when Claude Code, Codex, Cursor, or another MCP-capable workflow needs diagrams that are rendered as durable files instead of pasted source blocks. The server is intentionally focused: accept Mermaid code, render it consistently, and return an artifact reference your client can open, share, or attach to documentation.
 
 ![High-Level Architecture](https://raw.githubusercontent.com/fay-i/mermaid-mcp/main/docs/architecture/01-high-level-architecture.svg)
 
 ## Features
 
-- **High-Quality Rendering**: Puppeteer + Mermaid CLI with Google Fonts and drop shadow support
-- **Multiple Output Formats**: SVG and PDF with configurable themes (`default`, `dark`, `forest`, `neutral`)
-- **PDF Deck Builder**: Combine multiple diagrams into multi-page PDF presentations
-- **Flexible Storage**: Local filesystem or S3/MinIO with automatic backend detection
-- **Inline Mode**: Return base64-encoded artifacts when no storage is configured
-- **Docker Ready**: Volume mount support for persistent artifact storage
-- **MCP Compliant**: Full Model Context Protocol specification compliance
+- **MCP server for Mermaid rendering**: Exposes diagram tools over the Model Context Protocol
+- **High-quality rendering**: Puppeteer + Mermaid CLI with Google Fonts and drop shadow support
+- **Multiple output formats**: SVG and PDF with configurable themes (`default`, `dark`, `forest`, `neutral`)
+- **Deck artifacts**: Combine multiple diagrams into multi-page PDF presentations
+- **Flexible storage**: Local filesystem or S3/MinIO with automatic backend detection
+- **Docker ready**: Volume mount support for persistent artifact storage
+- **No telemetry**: Runs as your local/server-side MCP process and does not add hidden tracking
 
 ## Quick Start
 
-### NPM Installation
+### Install from npm
 
 ```bash
 # Install globally
@@ -31,11 +33,39 @@ mermaid-mcp --help
 
 The server requires a data directory argument where generated SVG and PDF files will be stored. The directory will be created if it doesn't exist.
 
+### Use from an MCP client
+
+Configure your MCP client to launch the `mermaid-mcp` binary and pass an artifact directory:
+
+```json
+{
+  "mcpServers": {
+    "mermaid-mcp": {
+      "command": "mermaid-mcp",
+      "args": ["/absolute/path/to/mermaid-artifacts"]
+    }
+  }
+}
+```
+
+Or run the published package without a global install:
+
+```json
+{
+  "mcpServers": {
+    "mermaid-mcp": {
+      "command": "npx",
+      "args": ["-y", "@fay-i/mermaid-mcp", "/absolute/path/to/mermaid-artifacts"]
+    }
+  }
+}
+```
+
 ### Docker Compose (Recommended)
 
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/fay-i/mermaid-mcp.git
 cd mermaid-mcp
 
 # Create local storage directory

@@ -1,7 +1,7 @@
 {
   "name": "@fay-i/mermaid-mcp",
   "version": "1.0.0",
-  "description": "MCP server for rendering Mermaid diagrams to vector artifacts",
+  "description": "Model Context Protocol server for rendering Mermaid diagrams to SVG, PDF, and deck artifacts.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,9 +41,19 @@
   },
   "keywords": [
     "mcp",
+    "mcp-server",
+    "model-context-protocol",
     "mermaid",
+    "mermaidjs",
+    "diagram",
+    "diagrams",
     "svg",
-    "diagram"
+    "pdf",
+    "typescript",
+    "puppeteer",
+    "claude-code",
+    "codex",
+    "cursor"
   ],
   "license": "MIT",
   "dependencies": {
