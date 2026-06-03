@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation & usage
+    url: https://github.com/fay-i/mermaid-mcp#readme
+    about: Read the README for setup, configuration, and MCP tool reference before filing an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/fay-i/mermaid-mcp/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

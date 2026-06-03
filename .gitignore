@@ -18,9 +18,14 @@ Thumbs.db
 # Environment
 .env
 .env.local
-.github/
-!.github/workflows
+.github/*
+!.github/workflows/
 !.github/dependabot.yml
+!.github/CODE_OF_CONDUCT.md
+!.github/CONTRIBUTING.md
+!.github/SECURITY.md
+!.github/PULL_REQUEST_TEMPLATE.md
+!.github/ISSUE_TEMPLATE/
 
 # Test coverage
 coverage/

@@ -1,10 +1,10 @@
 ---
-description: "Research existing codebase context for a feature spec"
+description: "Research existing codebase and current implementation context for a feature spec"
 ---
 
-# /bk.plan — The CONTEXT (Research Only)
+# /bk.plan — The CONTEXT (Research + Recommendations Only)
 
-You are researching the codebase to provide context for implementing a feature. The user will provide the feature directory as $ARGUMENTS (e.g., `specs/001-user-login`), or you should identify the current feature from the active branch.
+You are researching the codebase and the current implementation landscape to provide context for implementing a feature. The user will provide the feature directory as $ARGUMENTS (e.g., `specs/001-user-login`), or you should identify the current feature from the active branch.
 
 ## Gate
 
@@ -25,20 +25,29 @@ Before anything else, run `.behavior-kit/scripts/check-prereqs.sh plan`. If it f
    - Identify patterns and conventions already in use
    - Find code that the feature will interact with
    - Note external dependencies or contracts
-6. Write the plan to `specs/NNN-feature-name/plan.md`
+6. Perform focused live web research for the feature's likely implementation surface:
+   - Use current-year sources where possible, prioritizing official docs, standards, release notes, and reputable project guidance
+   - Capture implementation trends, best practices, and cautions relevant to this feature
+   - Prefer primary sources for APIs, frameworks, libraries, security, accessibility, deployment, or platform constraints
+   - If live web access is unavailable, state that clearly and do not invent current guidance
+7. Write the plan to `specs/NNN-feature-name/plan.md`
 
 ## Rules
-- Document EXISTING patterns, not proposed ones
+- Document existing patterns and give them real weight, but do not treat them as the only acceptable path
 - Reference snippets come from EXISTING code only
+- Offer better-way recommendations when current practice, live research, or the spec suggests a more adaptable approach
+- Label web findings as recommendations, tradeoffs, or cautions — never decisions
+- Compare recommendations against the existing codebase, constitution, and spec before presenting them
+- Favor the smallest change that achieves the desired behavior; code is a liability, so every recommended addition needs a reason
+- Keep recommendations scoped to the feature; if a recommendation expands scope, call that out as a tradeoff and ask the user before carrying it forward
 - Open questions must include a proposed answer
-- This is research, not design
+- This is research and recommendation, not design
 
 ## Forbidden
-- Inventing data models or schemas
-- Proposing API contracts or endpoint shapes
-- Suggesting project structure or new directories
+- Inventing final data models, schemas, API contracts, endpoint shapes, project structures, or directories as decisions
 - Writing new code or pseudocode
-- Making architectural decisions not already present in the codebase
+- Presenting architectural recommendations as settled implementation decisions
+- Treating popularity, novelty, or "best practice" language as authority without local fit and testability
 
 ## Output
 `specs/NNN-feature-name/plan.md`

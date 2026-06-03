@@ -490,8 +490,14 @@ MIT - See [LICENSE](https://github.com/fay-i/mermaid-mcp/blob/main/LICENSE) file
 
 ## Contributing
 
+Contributions are welcome! Please read [CONTRIBUTING.md](https://github.com/fay-i/mermaid-mcp/blob/main/.github/CONTRIBUTING.md) for the development workflow, quality gate, and branch conventions, and our [Code of Conduct](https://github.com/fay-i/mermaid-mcp/blob/main/.github/CODE_OF_CONDUCT.md).
+
+In short:
+
 1. Follow TDD practices (tests before implementation)
 2. Run `npm run quality` before every commit
 3. One PR per user story
 4. No skips, ignores, or bypasses in tests or linting
 5. See [AGENTS.md](https://github.com/fay-i/mermaid-mcp/blob/main/AGENTS.md) for AI agent guidelines
+
+Security issues? Please report them privately — see our [Security Policy](https://github.com/fay-i/mermaid-mcp/blob/main/.github/SECURITY.md).
