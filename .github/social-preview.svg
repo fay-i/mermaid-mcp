@@ -65,12 +65,15 @@
     </g>
 
     <g transform="translate(0 264)">
-      <rect x="0" y="-31" width="1086" height="112" rx="8" fill="#101820" stroke="#263241"/>
+      <rect x="0" y="-31" width="1086" height="132" rx="8" fill="#101820" stroke="#263241"/>
       <text class="line" x="24" y="0">
-        <tspan class="green">result</tspan><tspan class="muted">:</tspan><tspan class="fg"> { ok: true, format: </tspan><tspan class="amber">"svg"</tspan><tspan class="fg">, artifact_url: </tspan><tspan class="cyan">"file://.../diagram.svg"</tspan><tspan class="fg"> }</tspan>
+        <tspan class="green">result</tspan><tspan class="muted">:</tspan><tspan class="fg"> { ok: true, format: </tspan><tspan class="amber">"svg"</tspan><tspan class="fg"> }</tspan>
       </text>
       <text class="line" x="24" y="42">
-        <tspan class="cyan">assistant</tspan><tspan class="muted">:</tspan><tspan class="fg"> Attached the rendered diagram. PDF and deck tools are ready too.</tspan>
+        <tspan class="muted">artifact_url</tspan><tspan class="fg">: </tspan><tspan class="cyan">"file://.../diagram.svg"</tspan>
+      </text>
+      <text class="line" x="24" y="84">
+        <tspan class="cyan">assistant</tspan><tspan class="muted">:</tspan><tspan class="fg"> Attached the rendered diagram. PDF + deck tools ready.</tspan>
       </text>
     </g>
 
