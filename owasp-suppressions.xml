@@ -133,4 +133,38 @@
     <cve>CVE-2026-56876</cve>
   </suppress>
 
+  <!--
+    CVE-2026-65898: DOMPurify < 3.4.11 allowlist mutation (CVSS 3.1 7.2)
+
+    @zenuml/core's prebuilt dist/zenuml.js bundles its own DOMPurify 3.3.1.
+    The npm dompurify package itself is 3.4.17 (patched). No release in
+    @zenuml/core 3.x bundles a fixed copy (3.50.1 is the latest), and even the
+    newest @mermaid-js/mermaid-zenuml (1.0.1) requires @zenuml/core ^3. A fix
+    needs mermaid-cli 12 and zenuml 4.
+
+    Why NOT exploitable in mermaid-mcp:
+
+    1. PRECONDITION NEEDS CODE EXECUTION: the flaw lets a registered
+       uponSanitizeAttribute hook permanently mutate the shared allowlist. An
+       attacker must already run JavaScript in the page to register a hook.
+
+    2. INPUT IS DIAGRAM TEXT: tool input is Mermaid source, rendered in
+       headless Chromium with securityLevel: "strict". No tool input becomes
+       script, and no hooks are registered from it.
+
+    Scoped to the bundled file only, so any other DOMPurify copy is still
+    checked. Tracked for removal in #171.
+
+    Approved: 2026-10-22
+  -->
+  <suppress>
+    <notes><![CDATA[
+      DOMPurify 3.3.1 bundled in @zenuml/core's zenuml.js: exploit requires
+      registering a sanitize hook (code execution in the page). Input is
+      diagram text under securityLevel strict. No semver-compatible fix.
+    ]]></notes>
+    <filePath regex="true">.*[\\/]@zenuml[\\/]core[\\/]dist[\\/]zenuml\.js$</filePath>
+    <cve>CVE-2026-65898</cve>
+  </suppress>
+
 </suppressions>
