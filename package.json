@@ -30,6 +30,7 @@
   "scripts": {
     "test": "vitest run",
     "test:integration": "./scripts/integration-test.sh",
+    "test:container": "./scripts/container-smoke-test.sh",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
