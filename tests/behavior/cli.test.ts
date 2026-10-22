@@ -131,4 +131,68 @@ describe("parseArgs", () => {
       expect(mockExit).toHaveBeenCalledWith(0);
     });
   });
+
+  describe("--http=<port> flag", () => {
+    it("reads the port when the flag precedes the data dir", () => {
+      const result = parseArgs(["node", "index.js", "--http=8000", "/data"]);
+      expect(result).toEqual({ dataDir: "/data", httpPort: 8000 });
+    });
+
+    it("reads the port when the flag follows the data dir", () => {
+      const result = parseArgs(["node", "index.js", "/data", "--http=8000"]);
+      expect(result).toEqual({ dataDir: "/data", httpPort: 8000 });
+    });
+
+    it("leaves the port undefined without the flag (stdio mode)", () => {
+      const result = parseArgs(["node", "index.js", "/data"]);
+      expect(result.httpPort).toBeUndefined();
+    });
+
+    it("accepts port 0 to mean any free port", () => {
+      const result = parseArgs(["node", "index.js", "--http=0", "/data"]);
+      expect(result.httpPort).toBe(0);
+    });
+
+    it.each([
+      "--http=abc",
+      "--http=70000",
+      "--http=-1",
+      "--http=",
+      "--http",
+      "--http=80.5",
+    ])("exits 1 naming the flag and range for %s", (flag) => {
+      expect(() => parseArgs(["node", "index.js", flag, "/data"])).toThrow(
+        "process.exit called",
+      );
+      expect(mockExit).toHaveBeenCalledWith(1);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("--http=<port>"),
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("0-65535"),
+      );
+    });
+
+    it("allows the flag without a data dir in S3 mode", () => {
+      process.env.STORAGE_TYPE = "s3";
+      const result = parseArgs(["node", "index.js", "--http=8000"]);
+      expect(result).toEqual({ dataDir: undefined, httpPort: 8000 });
+    });
+
+    it("still requires a data dir in local mode", () => {
+      expect(() => parseArgs(["node", "index.js", "--http=8000"])).toThrow(
+        "process.exit called",
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        "Error: data directory argument is required.\n",
+      );
+    });
+
+    it("is documented in --help", () => {
+      expect(() => parseArgs(["node", "index.js", "--help"])).toThrow();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("--http=<port>"),
+      );
+    });
+  });
 });

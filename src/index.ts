@@ -16,25 +16,52 @@ import { MermaidToPdfInputSchema } from "./schemas/mermaid-to-pdf.js";
 import { DeckRequestSchema } from "./schemas/mermaid-to-deck.js";
 import { extractSessionId, type RequestHandlerExtra } from "./cache/session.js";
 
+const HTTP_FLAG = "--http";
+const MAX_PORT = 65535;
+
+function parseHttpPort(flag: string): number {
+  const value = flag.startsWith(`${HTTP_FLAG}=`)
+    ? flag.slice(HTTP_FLAG.length + 1)
+    : "";
+  const port = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (Number.isNaN(port) || port > MAX_PORT) {
+    console.error(
+      `Error: ${HTTP_FLAG}=<port> needs a port number in the range 0-${MAX_PORT} (got "${flag}").`,
+    );
+    process.exit(1);
+  }
+  return port;
+}
+
 /**
  * Parse command line arguments.
- * Usage: mermaid-mcp <data-dir>
+ * Usage: mermaid-mcp [--http=<port>] <data-dir>
  *
  * @returns Parsed arguments
  * @throws Error if required arguments are missing
  */
 export function parseArgs(argv: string[] = process.argv): {
   dataDir: string | undefined;
+  httpPort?: number;
 } {
-  const args = argv.slice(2);
+  const allArgs = argv.slice(2);
+  const httpFlag = allArgs.find(
+    (arg) => arg === HTTP_FLAG || arg.startsWith(`${HTTP_FLAG}=`),
+  );
+  const args = allArgs.filter((arg) => arg !== httpFlag);
 
   // Check for help flag
   if (args.includes("--help") || args.includes("-h")) {
     console.error(`Usage: mermaid-mcp <data-dir>
+       mermaid-mcp --http=<port> <data-dir>
 
 Arguments:
   data-dir    Required. Directory for storing generated artifacts.
               Will be created if it doesn't exist.
+
+Options:
+  --http=<port>  Serve MCP over Streamable HTTP at /mcp on <port>
+                 (0 picks a free port). Without it, the server uses stdio.
 
 Environment Variables (optional, for S3 storage):
   STORAGE_TYPE=s3              Use S3 instead of local storage
@@ -57,6 +84,8 @@ Examples:
     process.exit(0);
   }
 
+  const httpPort = httpFlag === undefined ? undefined : parseHttpPort(httpFlag);
+
   // Require data directory argument (unless S3 is configured)
   const isS3Mode = process.env.STORAGE_TYPE === "s3";
   if (args.length === 0 && !isS3Mode) {
@@ -67,7 +96,7 @@ Examples:
   }
 
   const dataDir = args[0] ? resolve(args[0]) : undefined;
-  return { dataDir };
+  return httpPort === undefined ? { dataDir } : { dataDir, httpPort };
 }
 
 /**
