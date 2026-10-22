@@ -12,6 +12,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 export interface HttpServerOptions {
   port: number;
   createMcpServer: () => McpServer;
+  idleTimeoutMs?: number;
 }
 
 export interface RunningHttpServer {
@@ -19,6 +20,7 @@ export interface RunningHttpServer {
   close(): Promise<void>;
 }
 
+const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const MCP_PATH = "/mcp";
 const HEALTH_PATH = "/health";
 const MCP_METHODS = ["GET", "POST", "DELETE"];
@@ -52,6 +54,12 @@ function sendJsonRpcError(
     );
 }
 
+interface Session {
+  transport: StreamableHTTPServerTransport;
+  requestsInFlight: number;
+  idleTimer?: NodeJS.Timeout;
+}
+
 function sessionIdOf(req: http.IncomingMessage): string | undefined {
   const value = req.headers[SESSION_HEADER];
   return typeof value === "string" ? value : undefined;
@@ -60,7 +68,49 @@ function sessionIdOf(req: http.IncomingMessage): string | undefined {
 export function startHttpServer(
   options: HttpServerOptions,
 ): Promise<RunningHttpServer> {
-  const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const idleTimeoutMs = options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+  const sessions = new Map<string, Session>();
+
+  function forgetSession(sessionId: string): Session | undefined {
+    const session = sessions.get(sessionId);
+    if (session) {
+      clearTimeout(session.idleTimer);
+      sessions.delete(sessionId);
+    }
+    return session;
+  }
+
+  function releaseSession(sessionId: string): void {
+    void forgetSession(sessionId)?.transport.close();
+  }
+
+  function restartIdleClock(sessionId: string, session: Session): void {
+    clearTimeout(session.idleTimer);
+    if (session.requestsInFlight === 0) {
+      session.idleTimer = setTimeout(
+        () => releaseSession(sessionId),
+        idleTimeoutMs,
+      ).unref();
+    }
+  }
+
+  async function handleInSession(
+    sessionId: string,
+    session: Session,
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> {
+    // A long-lived GET stream is passive: it must not keep a vanished client alive.
+    if (req.method !== "GET") {
+      session.requestsInFlight++;
+      res.once("close", () => {
+        session.requestsInFlight--;
+        restartIdleClock(sessionId, session);
+      });
+    }
+    restartIdleClock(sessionId, session);
+    await session.transport.handleRequest(req, res);
+  }
 
   async function openSession(
     req: http.IncomingMessage,
@@ -70,10 +120,12 @@ export function startHttpServer(
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: randomUUID,
       onsessioninitialized: (sessionId) => {
-        sessions.set(sessionId, transport);
+        const session: Session = { transport, requestsInFlight: 0 };
+        sessions.set(sessionId, session);
+        restartIdleClock(sessionId, session);
       },
       onsessionclosed: (sessionId) => {
-        sessions.delete(sessionId);
+        forgetSession(sessionId);
       },
     });
     await options.createMcpServer().connect(transport);
@@ -88,7 +140,7 @@ export function startHttpServer(
     if (sessionId !== undefined) {
       const existing = sessions.get(sessionId);
       if (existing) {
-        await existing.handleRequest(req, res);
+        await handleInSession(sessionId, existing, req, res);
       } else {
         sendJsonRpcError(
           res,
