@@ -307,6 +307,30 @@
 - **B028a: Preparation never finishes**
   Input: page preparation hangs | Output: a timeout error within budget | Test: Given hung preparation, when rendering, then it returns within 2 s with a timeout error
 
+## B029: Refuse tool calls with far more input elements than any real call
+**From**: AC-3, AC-10 (server never restarts), Edge cases (no client crashes the server) | **Depends on**: B005
+**Added during review**: an HTTP client can send a tool call whose arguments hold millions of array elements or object members, all inside the body limit. The largest real call is a 100-diagram deck with every option, at about 314 elements.
+**Action**: Refuse a tool call whose arguments hold more than 1,000 elements in total, before validating or running it.
+**Input**: A tool call whose `code` argument is an array of 5,000 numbers
+**Output**: A tool error that names the element limit. The session keeps serving.
+**Test**: Given a session, when a tool is called with 5,000 elements in its arguments, then the result is an error naming the element limit, and the same session can still list tools
+
+### Branches
+- **B029a: The largest real call**
+  Input: a deck call with 100 titled diagrams, margins, and every option set | Output: not refused for its element count | Test: Given that call with an out-of-range `timeout_ms`, when called, then the error is about `timeout_ms`, not the element limit
+
+## B030: Accept in-session bodies as large as the largest valid deck
+**From**: AC-3, Edge cases (no client crashes the server) | **Depends on**: B005
+**Added during review**: the deck tool accepts up to 10 MiB of diagram code, but the transport's default body limit is 4 MiB, so a valid large deck was refused over HTTP. The new bound fits a maximum deck with room for JSON escaping, and still caps memory per request.
+**Action**: Read in-session request bodies up to 16 MiB, and refuse anything larger.
+**Input**: A deck call carrying 10 diagrams of 1 MiB each (10 MiB of code in total)
+**Output**: The call reaches the tool, rather than getting a 413
+**Test**: Given a session, when that deck call is posted with an out-of-range `timeout_ms`, then the response is 200 with a tool error about `timeout_ms`
+
+### Branches
+- **B030a: Over the bound**
+  Input: an in-session body of 17 MiB | Output: 413. The session keeps serving. | Test: Given a session, when a 17 MiB body is posted, then 413 is returned and the same session can still list tools
+
 ---
 
 ## Coverage Matrix
@@ -314,14 +338,14 @@
 |----|-----------|
 | AC-1 | B004, B005, B008, B021 |
 | AC-2 | B009, B010 |
-| AC-3 | B005, B011, B028 |
+| AC-3 | B005, B011, B028, B029, B030 |
 | AC-4 | B012 |
 | AC-5 | B006, B013 |
 | AC-6 | B015 |
 | AC-7 | B004, B014 |
 | AC-8 | B016 |
 | AC-9 | B017 |
-| AC-10 | B003, B018, B028 |
+| AC-10 | B003, B018, B028, B029 |
 | AC-11 | B001, B003, B022, B023, B024, B025 |
 | AC-12 | B026 |
 | AC-13 | B027 |
@@ -333,6 +357,7 @@
 |-----------|-----------|
 | Handshake never completed | B010b, B021a |
 | Rapid burst of connections | B021 |
+| Oversized or overgrown tool input | B029, B030 |
 | Brief network loss and reconnect | B007, B009 |
 | Server restart | B007b, B022 |
 | Disconnect during own render | B009b |

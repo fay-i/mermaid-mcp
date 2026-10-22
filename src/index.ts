@@ -136,15 +136,23 @@ function registerStorageTool<TInput, TOutput>(
   );
 }
 
+// The largest real call, a 100-diagram deck with every option set, holds
+// about 314 array elements and object members. Anything far beyond that is
+// refused before the arguments are validated.
+const MAX_TOOL_INPUT_ELEMENTS = 1000;
+
 /**
  * Create and start the MCP server.
  * Exported for testing.
  */
 export function createServer(storage: StorageBackend): McpServer {
-  const server = new McpServer({
-    name: "mermaid-printer",
-    version: VERSION,
-  });
+  const server = new McpServer(
+    {
+      name: "mermaid-printer",
+      version: VERSION,
+    },
+    { maxToolInputElements: MAX_TOOL_INPUT_ELEMENTS },
+  );
 
   // Register healthcheck tool (no storage needed)
   server.tool(
