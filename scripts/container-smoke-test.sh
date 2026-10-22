@@ -39,11 +39,13 @@ cleanup() {
 trap cleanup EXIT
 
 CLIENT_TIMEOUT_SECONDS=90
+# Pinned so a new Inspector release cannot silently change client behavior
+INSPECTOR="@modelcontextprotocol/inspector@2.12.0"
 
 # Runs one Inspector CLI call, killed after CLIENT_TIMEOUT_SECONDS so a server
 # that never answers fails the check instead of hanging the script.
 inspector() {
-  npx --yes @modelcontextprotocol/inspector --cli \
+  npx --yes "$INSPECTOR" --cli \
     --server-url "$MCP_URL" --transport http "$@" 2>/dev/null &
   local pid=$!
   ( sleep "$CLIENT_TIMEOUT_SECONDS" && kill "$pid" 2>/dev/null ) &
