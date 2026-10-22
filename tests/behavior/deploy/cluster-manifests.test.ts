@@ -86,7 +86,11 @@ describe("cluster deploy documentation", () => {
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY",
     "AWS_REGION",
-  ])("names the %s key the server reads", (key) => {
-    expect(readme).toContain(`--from-literal=${key}=`);
+  ])("names the %s key the server reads, with its value quoted", (key) => {
+    expect(readme).toMatch(new RegExp(`--from-literal=${key}='[^'\n]+'`));
+  });
+
+  it("tells operators to replace the placeholders before running it", () => {
+    expect(readme).toMatch(/replace each `<\.\.\.>` placeholder/i);
   });
 });

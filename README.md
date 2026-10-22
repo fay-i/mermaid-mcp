@@ -110,17 +110,17 @@ curl http://localhost:8000/health
 
 ### Deploy to Kubernetes
 
-The manifests in `k8s/` run one replica with S3 storage. They read the storage settings from a Secret named `mermaid-s3-credentials`, which is never committed. Create it once, before the first apply:
+The manifests in `k8s/` run one replica with S3 storage. They read the storage settings from a Secret named `mermaid-s3-credentials`, which is never committed. Create it once, before the first apply. Replace each `<...>` placeholder with your real value first, and keep the single quotes so the shell passes credentials through unchanged:
 
 ```bash
 kubectl create namespace mermaid-mcp
 kubectl -n mermaid-mcp create secret generic mermaid-s3-credentials \
-  --from-literal=STORAGE_TYPE=s3 \
-  --from-literal=S3_ENDPOINT=http://<minio-host>:9000 \
-  --from-literal=S3_BUCKET=<bucket> \
-  --from-literal=AWS_ACCESS_KEY_ID=<access-key> \
-  --from-literal=AWS_SECRET_ACCESS_KEY=<secret-key> \
-  --from-literal=AWS_REGION=us-east-1
+  --from-literal=STORAGE_TYPE='s3' \
+  --from-literal=S3_ENDPOINT='http://<minio-host>:9000' \
+  --from-literal=S3_BUCKET='<bucket>' \
+  --from-literal=AWS_ACCESS_KEY_ID='<access-key>' \
+  --from-literal=AWS_SECRET_ACCESS_KEY='<secret-key>' \
+  --from-literal=AWS_REGION='us-east-1'
 ```
 
 Then apply the manifests. The Deployment pulls `:latest` on every start, so restart it to pick up a new image:
