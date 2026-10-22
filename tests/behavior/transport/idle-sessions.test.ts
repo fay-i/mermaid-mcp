@@ -3,7 +3,13 @@
  * next request gets 404 so the client re-initializes.
  */
 
+import { tmpdir } from "node:os";
+import { setFlagsFromString } from "node:v8";
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
+import { startHttpServer } from "../../../src/http-server.js";
+import { createServer } from "../../../src/index.js";
+import { LocalStorageBackend } from "../../../src/storage/local-backend.js";
 import {
   callTool,
   connectClient,
@@ -118,5 +124,50 @@ describe("idle clock and in-flight work", () => {
       404,
     );
     controller.abort();
+  });
+});
+
+describe("closed sessions release their idle clock", () => {
+  // A full collection lets the test see whether anything still holds a
+  // closed session's server; a pending idle timer would.
+  function collectGarbage(): void {
+    setFlagsFromString("--expose-gc");
+    (runInNewContext("gc") as () => void)();
+  }
+
+  it("lets sessions ended by DELETE be garbage collected", async () => {
+    const created: WeakRef<object>[] = [];
+    const storage = new LocalStorageBackend({
+      basePath: tmpdir(),
+      hostPath: tmpdir(),
+      urlScheme: "file",
+    });
+    const running = await startHttpServer({
+      port: 0,
+      createMcpServer: () => {
+        const server = createServer(storage);
+        const connect = server.connect.bind(server);
+        server.connect = (transport) => {
+          created.push(new WeakRef(transport));
+          return connect(transport);
+        };
+        return server;
+      },
+    });
+    const url = new URL(`http://127.0.0.1:${running.port}/mcp`);
+
+    for (let i = 0; i < 10; i++) {
+      const { client, transport } = await connectClient(url);
+      await transport.terminateSession();
+      await client.close();
+    }
+    await sleep(50);
+    collectGarbage();
+    await sleep(50);
+    collectGarbage();
+
+    const retained = created.filter((ref) => ref.deref() !== undefined).length;
+    expect(retained).toBe(0);
+    await running.close();
   });
 });
