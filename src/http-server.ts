@@ -24,6 +24,7 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const MCP_PATH = "/mcp";
 const HEALTH_PATH = "/health";
 const MCP_METHODS = ["GET", "POST", "DELETE"];
+const REMOVED_SSE_PATHS = ["/sse", "/message"];
 
 function pathOf(req: http.IncomingMessage): string {
   return new URL(req.url ?? "/", "http://localhost").pathname;
@@ -181,6 +182,16 @@ export function startHttpServer(
 
     if (path === HEALTH_PATH) {
       res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+      return;
+    }
+
+    if (REMOVED_SSE_PATHS.includes(path)) {
+      const url = `http://${req.headers.host ?? "<host>:<port>"}${MCP_PATH}`;
+      res.writeHead(410, { "Content-Type": "application/json" }).end(
+        JSON.stringify({
+          error: `The SSE transport was removed. Reconnect with --transport http to ${url}`,
+        }),
+      );
       return;
     }
 
