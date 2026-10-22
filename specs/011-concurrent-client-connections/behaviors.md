@@ -9,11 +9,11 @@
 | D3 | Endpoint path | One MCP endpoint, `/mcp`. The old `/sse` and `/message` paths answer **410 Gone** with a hint that names the new transport and path. Any other unknown path answers 404. |
 | D4 | Idle timeout | A session is released after **30 minutes** without requests. The period can be set when the HTTP server is constructed, so tests can shorten it. It is not exposed on the CLI. |
 | D5 | Origin validation | Any request to `/mcp` that carries an `Origin` header is refused with **403**. Requests without `Origin` (Claude Code, Inspector CLI, curl, probes) pass. |
-| D6 | Pull secret | Remove `imagePullSecrets: dockerhub-credentials` from the cluster manifests. |
+| D6 | Pull secret | Remove the cluster configuration's reference to an image pull secret that does not exist. |
 | D7 | Volume permissions (uid 1000) | Deferred to the follow-up issue. |
 | D8 | Compose drift | Change the compose file's transport, port, healthcheck and comments, and **drop the dead 3001 port**. The ignored storage env vars go to the follow-up issue. |
 | D9 | "URL resolves" in local mode | For local storage, a file with the rendered bytes exists at the path the `file://` URL names. For S3, fetching the presigned URL within its expiry returns the rendered bytes. |
-| D10 | Proving AC-11 | A container smoke test drives the built image with its committed command. After merge, a recorded live checklist covers the cluster manifests. |
+| D10 | Proving AC-11 | A container smoke test drives the built image as built. After merge, the live verification in the plan covers the cluster configuration. |
 
 **Follow-up issue (to file, not part of this feature):**
 - compose storage env vars that `main()` ignores (`STORAGE_TYPE=auto`, `LOCAL_URL_SCHEME`, `CDN_*`, `MERMAID_S3_*`)
@@ -250,61 +250,62 @@
 **Output**: The process exits 0 promptly, and open streams end rather than hang
 **Test**: Given two connected clients, when the process gets SIGTERM, then it exits 0 within a few seconds
 
-## B023: Serve HTTP from the container image's own command
+## B023: Serve HTTP from the published image as built
 **From**: AC-11 | **Depends on**: B008, B011, B018, B019
-**Action**: The published image, started with its committed command and no overrides, serves `/mcp` and `/health` on port 8000.
-**Input**: `docker run` of the built image with port 8000 published
-**Output**: `/health` returns 200, two HTTP clients each list tools and render, and `/sse` returns 410
-**Test**: Given a freshly built image, when the container smoke test runs, then all checks pass and the container is still running
+**Action**: The published image, started with no overrides, serves MCP and health checks on its documented port, reports its own health, and refuses old SSE clients.
+**Input**: The built image, started with only its port published
+**Output**: Health checks answer, two clients each list tools and render, old SSE requests get the clear refusal, and the container stays up with no restarts
+**Test**: Given a freshly built image, when it is started as built and driven by two clients, then every check passes and the container is still running
 
 ### Branches
-- **B023a: No gateway in the image**
-  Input: the built image | Output: the container's command runs the server binary directly | Test: Given the image, when its configured command is inspected, then it is the server binary with `--http=8000`
+- **B023a: No gateway process**
+  Input: the built image | Output: the server itself serves HTTP; no separate gateway is installed | Test: Given the image, when inspected, then it starts the server in HTTP mode directly and contains no gateway
+- **B023b: Self-reported health**
+  Input: the built image | Output: the image declares a health check against the health endpoint | Test: Given the image, when inspected, then a health check is declared
 
-## B024: Make the cluster manifests deployable as committed
+## B024: Make the committed cluster configuration deployable as-is
 **From**: AC-11 | **Depends on**: B023
-**Action**: Applying the committed cluster manifests produces a pod that uses the S3 secret, serves on the documented address, and passes its probes.
-**Input**: The committed manifests
-**Output**: The deployment pulls its env from the `mermaid-s3-credentials` secret by name, has no `imagePullSecrets`, has no port named `sse`, and probes `/health` on 8000. The Service keeps 8100 → 8000.
-**Test**: Given the committed manifests, when parsed, then each property above holds.
-**Live checklist (post-merge, results recorded in the PR):**
-1. CI publishes `:latest`.
-2. Run `kubectl apply -k k8s/` and `kubectl -n mermaid-mcp rollout restart deploy/mermaid-mcp`.
-3. `kubectl diff -k k8s/` shows only server-managed fields.
-4. The restart count stays flat across 20 sequential connections and one abrupt drop.
+**Action**: Applying the committed cluster configuration with no hand edits produces a server that stores to the existing object store, passes its probes, and answers at the documented address.
+**Input**: The committed cluster configuration
+**Output**: Storage settings come from the existing cluster secret by name, without its contents. Nothing references credentials that don't exist. Nothing is labelled as SSE. Probes target the health endpoint. The documented external port still reaches the server.
+**Test**: Given the committed configuration, when read, then each property above holds; post-merge, the live verification in the plan passes
 
-## B025: Align the compose file with HTTP mode
+### Branches
+- **B024a: Secret provisioning is documented**
+  Input: the README | Output: it shows how to create the storage secret, with each setting the server reads, before the first apply | Test: Given the README, when read, then the secret step precedes the apply step and names every setting
+
+## B025: Align local compose with HTTP mode
 **From**: AC-11 | **Depends on**: B023
-**Action**: The compose file runs the server in HTTP mode on 8000 and health-checks `/health`.
+**Action**: Starting the server with the committed compose file runs it in HTTP mode on the one documented port, with health checking.
 **Input**: The committed compose file
-**Output**: The only published port is 8000 (3001 removed, D8). The healthcheck targets `/health`. Comments describe Streamable HTTP at `/mcp`, not SSE.
-**Test**: Given the committed compose file, when parsed, then the ports, healthcheck and absence of SSE references hold
+**Output**: Exactly one port is published (the dead one is removed, D8). The image's HTTP mode is not overridden. Health is checked. Nothing describes SSE.
+**Test**: Given the committed compose file, when read, then each property above holds
 
 ## B026: Document exactly one remote connection
 **From**: AC-12 | **Depends on**: B023
-**Action**: The README gives a single remote-client section with one address, one transport, and the exact Claude Code command.
+**Action**: The README gives one remote-client section with one address, one transport, and the exact Claude Code command (the AC names it).
 **Input**: The README
-**Output**: The section names `http://10.42.1.81:8100/mcp` and transport `http`, and includes `claude mcp add --scope user --transport http mermaid-mcp http://10.42.1.81:8100/mcp`. Nothing documents `--transport sse` or `/sse` as a connection option. The stdio `npx` section is unchanged.
-**Test**: Given the README, when scanned, then exactly one remote address and transport appear with that command, and no SSE connection instructions remain
+**Output**: One address (`http://10.42.1.81:8100/mcp`) and the transport `http`, with `claude mcp add --scope user --transport http mermaid-mcp http://10.42.1.81:8100/mcp`. No SSE connection instructions. The local stdio instructions are unchanged.
+**Test**: Given the README, when read, then exactly one remote address and transport appear with that command, and no SSE connection instructions remain
 
 ## B027: Re-add the known client with the documented commands
 **From**: AC-13 | **Depends on**: B024, B026
-**Action**: A Claude Code configured with the old SSE entry is switched over using the README's remove and add commands.
-**Input**: `claude mcp remove --scope user mermaid-mcp`, then the README's add command
+**Action**: A Claude Code configured with the old SSE entry is switched over using only the README's remove and add commands.
+**Input**: The README's remove command, then its add command
 **Output**: Claude Code connects, and every tool works
-**Test (live checklist)**: Given the deployed server, when the old entry is removed and re-added, then `claude mcp list` shows it connected and each of the four tools succeeds from a session
+**Test (post-merge)**: Given the deployed server, when the old entry is removed and re-added, then the client shows as connected and each of the four tools succeeds in one session
 
 ## B028: Keep a slow PDF phase from crashing the server
 **From**: AC-3, AC-10 (server never restarts) | **Depends on**: B011
-**Added during implementation**: full-suite runs under concurrent load hit an unhandled `PDF_TIMEOUT` rejection in `mermaid_to_pdf`. Its timer started before page setup was awaited, so nothing was listening when it fired. In a long-lived HTTP server, Node turns that into a process crash. The deck renderer had already fixed the same bug.
-**Action**: Race the whole PDF phase (page setup and printing) against its time budget.
-**Input**: A PDF render whose page setup is slower than the PDF budget, or never settles
-**Output**: `RENDER_TIMEOUT` within budget, and no unhandled rejection
-**Test**: Given a page whose setContent outlasts the budget, when `mermaid_to_pdf` runs, then it returns RENDER_TIMEOUT and no unhandled rejection is raised
+**Added during implementation**: full-suite runs under concurrent load showed that a PDF render's time limit could fire before anything was listening for it. In a long-lived server that becomes a process crash.
+**Action**: Hold the whole PDF conversion step, page preparation included, to its share of the time budget.
+**Input**: A PDF render whose page preparation runs longer than the budget, or never finishes
+**Output**: A timeout error within budget, and the server keeps running
+**Test**: Given page preparation that outlasts the budget, when a PDF is rendered, then a timeout error is returned and nothing escapes unhandled
 
 ### Branches
-- **B028a: Hung setContent**
-  Input: setContent never settles | Output: RENDER_TIMEOUT within budget | Test: Given a hung setContent, when rendering, then it returns within 2 s with RENDER_TIMEOUT
+- **B028a: Preparation never finishes**
+  Input: page preparation hangs | Output: a timeout error within budget | Test: Given hung preparation, when rendering, then it returns within 2 s with a timeout error
 
 ---
 

@@ -167,3 +167,13 @@ CMD ["supergateway", "--stdio", "node dist/index.js /app/data/artifacts", "--por
   **Proposed**: yes, for compose users, unchanged. The uid-1000 write-permission problem only bites if the cluster falls back to local storage. Mention it in the follow-up issue rather than fix it here.
 - **Q**: How does the deployed pod come from the repo (AC-11)?
   **Proposed**: after merge, CI publishes `:latest`. Then run `kubectl apply -k k8s/` and `kubectl -n mermaid-mcp rollout restart deploy/mermaid-mcp`. Verify with `kubectl diff -k k8s/` (only server-managed fields differ), the restart count staying flat across multiple client connections, and the re-added Claude Code client working.
+
+## Post-Merge Live Verification (B024, B027)
+
+Run against the live cluster after CI publishes `:latest` from `main`, and record the results in the PR:
+
+1. If the secret is missing, create it as the README shows (`kubectl -n mermaid-mcp create secret generic mermaid-s3-credentials …`).
+2. `kubectl apply -k k8s/`, then `kubectl -n mermaid-mcp rollout restart deploy/mermaid-mcp`.
+3. `kubectl diff -k k8s/` shows only server-managed fields.
+4. Note the pod's restart count. Run 20 sequential connections and one abrupt drop, then confirm the count is unchanged.
+5. B027: `claude mcp remove --scope user mermaid-mcp`, then `claude mcp add --scope user --transport http mermaid-mcp http://10.42.1.81:8100/mcp`. `claude mcp list` shows it connected, and each of the four tools succeeds.
