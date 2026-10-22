@@ -146,3 +146,31 @@ export function postInSession(
     body: JSON.stringify(message),
   });
 }
+
+export async function openRawSession(port: number): Promise<string> {
+  const response = await postInitialize(port);
+  await response.text();
+  const sessionId = response.headers.get("mcp-session-id") ?? "";
+  const headers = {
+    ...MCP_HEADERS,
+    "mcp-session-id": sessionId,
+    "mcp-protocol-version": "2025-06-18",
+  };
+  await fetch(`http://127.0.0.1:${port}/mcp`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+    }),
+  });
+  return sessionId;
+}
+
+export function sessionHeaders(sessionId: string): Record<string, string> {
+  return {
+    ...MCP_HEADERS,
+    "mcp-session-id": sessionId,
+    "mcp-protocol-version": "2025-06-18",
+  };
+}
