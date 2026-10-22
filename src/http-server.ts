@@ -36,6 +36,21 @@ async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
 }
 
 const SESSION_HEADER = "mcp-session-id";
+const START_NEW_SESSION =
+  "start a new session by sending initialize without an Mcp-Session-Id header";
+
+function sendJsonRpcError(
+  res: http.ServerResponse,
+  status: number,
+  code: number,
+  message: string,
+): void {
+  res
+    .writeHead(status, { "Content-Type": "application/json" })
+    .end(
+      JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }),
+    );
+}
 
 function sessionIdOf(req: http.IncomingMessage): string | undefined {
   const value = req.headers[SESSION_HEADER];
@@ -70,20 +85,40 @@ export function startHttpServer(
     res: http.ServerResponse,
   ): Promise<void> {
     const sessionId = sessionIdOf(req);
-    const existing = sessionId ? sessions.get(sessionId) : undefined;
-    if (existing) {
-      await existing.handleRequest(req, res);
+    if (sessionId !== undefined) {
+      const existing = sessions.get(sessionId);
+      if (existing) {
+        await existing.handleRequest(req, res);
+      } else {
+        sendJsonRpcError(
+          res,
+          404,
+          -32001,
+          `Session not found: ${START_NEW_SESSION}`,
+        );
+      }
       return;
     }
 
     if (req.method === "POST") {
-      const body = await readJsonBody(req);
+      let body: unknown;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJsonRpcError(res, 400, -32700, "Parse error: invalid JSON");
+        return;
+      }
       if (isInitializeRequest(body)) {
         await openSession(req, res, body);
         return;
       }
     }
-    res.writeHead(404).end();
+    sendJsonRpcError(
+      res,
+      400,
+      -32000,
+      `Bad Request: Mcp-Session-Id header is required; ${START_NEW_SESSION}`,
+    );
   }
 
   async function handleRequest(
@@ -110,7 +145,16 @@ export function startHttpServer(
   }
 
   const server = http.createServer((req, res) => {
-    void handleRequest(req, res);
+    handleRequest(req, res).catch((error: unknown) => {
+      console.error(
+        `[mermaid-mcp] HTTP request failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      if (!res.headersSent) {
+        sendJsonRpcError(res, 500, -32603, "Internal error");
+      } else {
+        res.end();
+      }
+    });
   });
 
   return new Promise((resolve, reject) => {
