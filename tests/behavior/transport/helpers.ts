@@ -5,6 +5,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createServer } from "../../../src/index.js";
@@ -173,4 +174,12 @@ export function sessionHeaders(sessionId: string): Record<string, string> {
     "mcp-session-id": sessionId,
     "mcp-protocol-version": "2025-06-18",
   };
+}
+
+export function sessionOfArtifact(
+  dataDir: string,
+  result: Record<string, unknown>,
+): string {
+  const path = fileURLToPath(String(result.download_url));
+  return path.slice(dataDir.length + 1).split("/")[0];
 }
