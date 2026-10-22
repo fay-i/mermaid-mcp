@@ -294,6 +294,18 @@
 **Output**: Claude Code connects, and every tool works
 **Test (live checklist)**: Given the deployed server, when the old entry is removed and re-added, then `claude mcp list` shows it connected and each of the four tools succeeds from a session
 
+## B028: Keep a slow PDF phase from crashing the server
+**From**: AC-3, AC-10 (server never restarts) | **Depends on**: B011
+**Added during implementation**: full-suite runs under concurrent load hit an unhandled `PDF_TIMEOUT` rejection in `mermaid_to_pdf`. Its timer started before page setup was awaited, so nothing was listening when it fired. In a long-lived HTTP server, Node turns that into a process crash. The deck renderer had already fixed the same bug.
+**Action**: Race the whole PDF phase (page setup and printing) against its time budget.
+**Input**: A PDF render whose page setup is slower than the PDF budget, or never settles
+**Output**: `RENDER_TIMEOUT` within budget, and no unhandled rejection
+**Test**: Given a page whose setContent outlasts the budget, when `mermaid_to_pdf` runs, then it returns RENDER_TIMEOUT and no unhandled rejection is raised
+
+### Branches
+- **B028a: Hung setContent**
+  Input: setContent never settles | Output: RENDER_TIMEOUT within budget | Test: Given a hung setContent, when rendering, then it returns within 2 s with RENDER_TIMEOUT
+
 ---
 
 ## Coverage Matrix
@@ -301,14 +313,14 @@
 |----|-----------|
 | AC-1 | B004, B005, B008, B021 |
 | AC-2 | B009, B010 |
-| AC-3 | B005, B011 |
+| AC-3 | B005, B011, B028 |
 | AC-4 | B012 |
 | AC-5 | B006, B013 |
 | AC-6 | B015 |
 | AC-7 | B004, B014 |
 | AC-8 | B016 |
 | AC-9 | B017 |
-| AC-10 | B003, B018 |
+| AC-10 | B003, B018, B028 |
 | AC-11 | B001, B003, B022, B023, B024, B025 |
 | AC-12 | B026 |
 | AC-13 | B027 |
