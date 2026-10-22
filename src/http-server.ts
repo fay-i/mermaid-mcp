@@ -35,9 +35,18 @@ async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+const SESSION_HEADER = "mcp-session-id";
+
+function sessionIdOf(req: http.IncomingMessage): string | undefined {
+  const value = req.headers[SESSION_HEADER];
+  return typeof value === "string" ? value : undefined;
+}
+
 export function startHttpServer(
   options: HttpServerOptions,
 ): Promise<RunningHttpServer> {
+  const sessions = new Map<string, StreamableHTTPServerTransport>();
+
   async function openSession(
     req: http.IncomingMessage,
     res: http.ServerResponse,
@@ -45,6 +54,9 @@ export function startHttpServer(
   ): Promise<void> {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: randomUUID,
+      onsessioninitialized: (sessionId) => {
+        sessions.set(sessionId, transport);
+      },
     });
     await options.createMcpServer().connect(transport);
     await transport.handleRequest(req, res, body);
@@ -54,6 +66,13 @@ export function startHttpServer(
     req: http.IncomingMessage,
     res: http.ServerResponse,
   ): Promise<void> {
+    const sessionId = sessionIdOf(req);
+    const existing = sessionId ? sessions.get(sessionId) : undefined;
+    if (existing) {
+      await existing.handleRequest(req, res);
+      return;
+    }
+
     if (req.method === "POST") {
       const body = await readJsonBody(req);
       if (isInitializeRequest(body)) {

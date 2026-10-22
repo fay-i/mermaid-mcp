@@ -2,6 +2,20 @@
  * Shared helpers for Streamable HTTP behavior tests.
  */
 
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { createServer } from "../../../src/index.js";
+import {
+  startHttpServer,
+  type HttpServerOptions,
+  type RunningHttpServer,
+} from "../../../src/http-server.js";
+import { LocalStorageBackend } from "../../../src/storage/local-backend.js";
+import type { StorageBackend } from "../../../src/storage/index.js";
+
 export const INITIALIZE_REQUEST = {
   jsonrpc: "2.0",
   id: 1,
@@ -28,3 +42,87 @@ export function postInitialize(port: number): Promise<Response> {
     body: JSON.stringify(INITIALIZE_REQUEST),
   });
 }
+
+export interface TestServer {
+  running: RunningHttpServer;
+  dataDir: string;
+  url: URL;
+  stop(): Promise<void>;
+}
+
+export async function startTestServer(
+  overrides: Omit<Partial<HttpServerOptions>, "createMcpServer"> & {
+    storage?: StorageBackend;
+  } = {},
+): Promise<TestServer> {
+  const dataDir = await mkdtemp(join(tmpdir(), "mermaid-mcp-http-"));
+  const { storage: storageOverride, ...httpOverrides } = overrides;
+  const storage =
+    storageOverride ??
+    new LocalStorageBackend({
+      basePath: dataDir,
+      hostPath: dataDir,
+      urlScheme: "file",
+    });
+  await storage.initialize();
+  const running = await startHttpServer({
+    port: 0,
+    createMcpServer: () => createServer(storage),
+    ...httpOverrides,
+  });
+  return {
+    running,
+    dataDir,
+    url: new URL(`http://127.0.0.1:${running.port}/mcp`),
+    stop: async () => {
+      await running.close();
+      await rm(dataDir, { recursive: true, force: true });
+    },
+  };
+}
+
+export interface TestClient {
+  client: Client;
+  transport: StreamableHTTPClientTransport;
+  sessionId: string;
+}
+
+export async function connectClient(url: URL): Promise<TestClient> {
+  const client = new Client({ name: "http-test", version: "1.0.0" });
+  const transport = new StreamableHTTPClientTransport(url);
+  await client.connect(transport);
+  return { client, transport, sessionId: transport.sessionId ?? "" };
+}
+
+export function parseToolResult(result: unknown): Record<string, unknown> {
+  const content = (result as { content: { type: string; text: string }[] })
+    .content;
+  return JSON.parse(content[0].text);
+}
+
+export async function callTool(
+  client: Client,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  return parseToolResult(await client.callTool({ name, arguments: args }));
+}
+
+export const TOOL_CALLS: { name: string; args: Record<string, unknown> }[] = [
+  { name: "healthcheck", args: { echo: "ping" } },
+  { name: "mermaid_to_svg", args: { code: "graph TD; A-->B" } },
+  { name: "mermaid_to_pdf", args: { code: "graph TD; A-->B" } },
+  {
+    name: "mermaid_to_deck",
+    args: {
+      diagrams: [{ code: "graph TD; A-->B" }, { code: "graph LR; C-->D" }],
+    },
+  },
+];
+
+export const ALL_TOOL_NAMES = [
+  "healthcheck",
+  "mermaid_to_deck",
+  "mermaid_to_pdf",
+  "mermaid_to_svg",
+];
