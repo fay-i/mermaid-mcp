@@ -11,9 +11,23 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 function parseToolResult(result: unknown): Record<string, unknown> {
-  const content = (result as { content: { type: string; text: string }[] })
-    .content;
+  const { content, isError } = result as {
+    content: { type: string; text: string }[];
+    isError?: boolean;
+  };
+  expect(isError, content[0].text).not.toBe(true);
   return JSON.parse(content[0].text);
+}
+
+// The SDK's stdio transport passes the child only a minimal environment. The
+// server reads CI to disable Chromium's sandbox where the runner lacks one,
+// so the child gets the full environment, as the Inspector integration suite does.
+function inheritedEnvironment(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
 }
 
 describe("stdio mode (no --http flag)", () => {
@@ -28,6 +42,7 @@ describe("stdio mode (no --http flag)", () => {
         command: "node",
         args: ["dist/index.js", dataDir],
         cwd: process.cwd(),
+        env: inheritedEnvironment(),
         stderr: "ignore",
       }),
     );
