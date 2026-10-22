@@ -34,6 +34,10 @@ function pathOf(req: http.IncomingMessage): string {
 // reads and limits in-session bodies. A real initialize is well under 1 KiB.
 const MAX_SESSIONLESS_BODY_BYTES = 1024 * 1024;
 
+// The deck tool accepts up to 10 MiB of diagram code; this leaves room for
+// JSON escaping. The SDK's default (4 MiB) would refuse valid decks.
+const MAX_SESSION_BODY_BYTES = 16 * 1024 * 1024;
+
 class BodyTooLargeError extends Error {}
 
 // Buffers at most the cap. Past it, the rest of the body is drained and
@@ -148,6 +152,7 @@ export function startHttpServer(
   ): Promise<void> {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: randomUUID,
+      maxRequestBodySize: MAX_SESSION_BODY_BYTES,
       onsessioninitialized: (sessionId) => {
         const session: Session = { transport, requestsInFlight: 0 };
         sessions.set(sessionId, session);
