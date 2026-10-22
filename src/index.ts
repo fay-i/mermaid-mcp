@@ -237,6 +237,9 @@ async function main(): Promise<void> {
       console.error(
         `[mermaid-mcp] Streamable HTTP listening on 0.0.0.0:${running.port}/mcp`,
       );
+      process.once("SIGTERM", () => {
+        void running.close().then(() => process.exit(0));
+      });
     } catch (error) {
       console.error(
         `[mermaid-mcp] Could not listen on port ${httpPort}: ${error instanceof Error ? error.message : String(error)}`,
