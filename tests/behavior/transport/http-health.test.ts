@@ -8,16 +8,21 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createServer as createMcpServer } from "../../../src/index.js";
 import {
   startHttpServer,
   type RunningHttpServer,
 } from "../../../src/http-server.js";
+import type { StorageBackend } from "../../../src/storage/index.js";
 
 describe("HTTP server health endpoint", () => {
   let running: RunningHttpServer;
 
   beforeEach(async () => {
-    running = await startHttpServer({ port: 0 });
+    running = await startHttpServer({
+      port: 0,
+      createMcpServer: () => createMcpServer({} as StorageBackend),
+    });
   });
 
   afterEach(async () => {

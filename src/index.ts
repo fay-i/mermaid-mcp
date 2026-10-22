@@ -229,7 +229,11 @@ async function main(): Promise<void> {
 
   if (httpPort !== undefined) {
     try {
-      const running = await startHttpServer({ port: httpPort });
+      const storage = storageBackend;
+      const running = await startHttpServer({
+        port: httpPort,
+        createMcpServer: () => createServer(storage),
+      });
       console.error(
         `[mermaid-mcp] Streamable HTTP listening on 0.0.0.0:${running.port}/mcp`,
       );
