@@ -61,6 +61,36 @@ Or run the published package without a global install:
 }
 ```
 
+### Connect to the deployed server
+
+The deployed server speaks MCP over Streamable HTTP at one address:
+
+| Transport | Address |
+|-----------|---------|
+| `http` | `http://10.42.1.81:8100/mcp` |
+
+Any number of clients can connect at the same time. Each connection gets its own session, and the artifacts it renders are grouped under that session.
+
+Add it to Claude Code:
+
+```bash
+claude mcp add --scope user --transport http mermaid-mcp http://10.42.1.81:8100/mcp
+```
+
+If this machine added the server before, under the old SSE transport, remove that entry first, then run the add command above:
+
+```bash
+claude mcp remove --scope user mermaid-mcp
+```
+
+Clients still using the old SSE configuration get `410 Gone`, with a message naming the address above.
+
+To run your own HTTP server, pass `--http=<port>`. The server then serves `/mcp` on that port, plus `/health` for probes:
+
+```bash
+mermaid-mcp --http=8000 ./data/artifacts
+```
+
 ### Docker Compose (Recommended)
 
 ```bash
@@ -77,6 +107,30 @@ docker-compose up -d
 # Verify server is running
 curl http://localhost:8000/health
 ```
+
+### Deploy to Kubernetes
+
+The manifests in `k8s/` run one replica with S3 storage. They read the storage settings from a Secret named `mermaid-s3-credentials`, which is never committed. Create it once, before the first apply. Replace each `<...>` placeholder with your real value first, and keep the single quotes so the shell passes credentials through unchanged:
+
+```bash
+kubectl create namespace mermaid-mcp
+kubectl -n mermaid-mcp create secret generic mermaid-s3-credentials \
+  --from-literal=STORAGE_TYPE='s3' \
+  --from-literal=S3_ENDPOINT='http://<minio-host>:9000' \
+  --from-literal=S3_BUCKET='<bucket>' \
+  --from-literal=AWS_ACCESS_KEY_ID='<access-key>' \
+  --from-literal=AWS_SECRET_ACCESS_KEY='<secret-key>' \
+  --from-literal=AWS_REGION='us-east-1'
+```
+
+Then apply the manifests. The Deployment pulls `:latest` on every start, so restart it to pick up a new image:
+
+```bash
+kubectl apply -k k8s/
+kubectl -n mermaid-mcp rollout restart deploy/mermaid-mcp
+```
+
+Without the Secret the Pod will not start.
 
 ### Local Development
 

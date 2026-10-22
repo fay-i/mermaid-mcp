@@ -30,6 +30,7 @@
   "scripts": {
     "test": "vitest run",
     "test:integration": "./scripts/integration-test.sh",
+    "test:container": "./scripts/container-smoke-test.sh",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
@@ -60,7 +61,7 @@
     "@aws-sdk/client-s3": "^3.962.0",
     "@aws-sdk/s3-request-presigner": "^3.962.0",
     "@mermaid-js/mermaid-cli": "^11.12.0",
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "lru-cache": "^11.2.4",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^23.11.1",
@@ -70,6 +71,7 @@
     "@biomejs/biome": "^2.4.16",
     "@types/node": "^25.9.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "yaml": "^2.9.1"
   }
 }

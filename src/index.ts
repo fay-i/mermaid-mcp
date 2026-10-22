@@ -9,6 +9,7 @@ import { mermaidToSvgWithStorage } from "./tools/mermaid-to-svg.js";
 import { mermaidToPdfWithStorage } from "./tools/mermaid-to-pdf.js";
 import { mermaidToDeckWithStorage } from "./tools/mermaid-to-deck.js";
 import { VERSION } from "./version.js";
+import { startHttpServer } from "./http-server.js";
 import { createStorageBackend, type StorageBackend } from "./storage/index.js";
 import { LocalStorageBackend } from "./storage/local-backend.js";
 import { MermaidToSvgInputSchema } from "./schemas/mermaid-to-svg.js";
@@ -16,25 +17,52 @@ import { MermaidToPdfInputSchema } from "./schemas/mermaid-to-pdf.js";
 import { DeckRequestSchema } from "./schemas/mermaid-to-deck.js";
 import { extractSessionId, type RequestHandlerExtra } from "./cache/session.js";
 
+const HTTP_FLAG = "--http";
+const MAX_PORT = 65535;
+
+function parseHttpPort(flag: string): number {
+  const value = flag.startsWith(`${HTTP_FLAG}=`)
+    ? flag.slice(HTTP_FLAG.length + 1)
+    : "";
+  const port = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (Number.isNaN(port) || port > MAX_PORT) {
+    console.error(
+      `Error: ${HTTP_FLAG}=<port> needs a port number in the range 0-${MAX_PORT} (got "${flag}").`,
+    );
+    process.exit(1);
+  }
+  return port;
+}
+
 /**
  * Parse command line arguments.
- * Usage: mermaid-mcp <data-dir>
+ * Usage: mermaid-mcp [--http=<port>] <data-dir>
  *
  * @returns Parsed arguments
  * @throws Error if required arguments are missing
  */
 export function parseArgs(argv: string[] = process.argv): {
   dataDir: string | undefined;
+  httpPort?: number;
 } {
-  const args = argv.slice(2);
+  const allArgs = argv.slice(2);
+  const httpFlag = allArgs.find(
+    (arg) => arg === HTTP_FLAG || arg.startsWith(`${HTTP_FLAG}=`),
+  );
+  const args = allArgs.filter((arg) => arg !== httpFlag);
 
   // Check for help flag
   if (args.includes("--help") || args.includes("-h")) {
     console.error(`Usage: mermaid-mcp <data-dir>
+       mermaid-mcp --http=<port> <data-dir>
 
 Arguments:
   data-dir    Required. Directory for storing generated artifacts.
               Will be created if it doesn't exist.
+
+Options:
+  --http=<port>  Serve MCP over Streamable HTTP at /mcp on <port>
+                 (0 picks a free port). Without it, the server uses stdio.
 
 Environment Variables (optional, for S3 storage):
   STORAGE_TYPE=s3              Use S3 instead of local storage
@@ -57,6 +85,8 @@ Examples:
     process.exit(0);
   }
 
+  const httpPort = httpFlag === undefined ? undefined : parseHttpPort(httpFlag);
+
   // Require data directory argument (unless S3 is configured)
   const isS3Mode = process.env.STORAGE_TYPE === "s3";
   if (args.length === 0 && !isS3Mode) {
@@ -67,7 +97,7 @@ Examples:
   }
 
   const dataDir = args[0] ? resolve(args[0]) : undefined;
-  return { dataDir };
+  return httpPort === undefined ? { dataDir } : { dataDir, httpPort };
 }
 
 /**
@@ -106,15 +136,23 @@ function registerStorageTool<TInput, TOutput>(
   );
 }
 
+// The largest real call, a 100-diagram deck with every option set, holds
+// about 314 array elements and object members. Anything far beyond that is
+// refused before the arguments are validated.
+const MAX_TOOL_INPUT_ELEMENTS = 1000;
+
 /**
  * Create and start the MCP server.
  * Exported for testing.
  */
 export function createServer(storage: StorageBackend): McpServer {
-  const server = new McpServer({
-    name: "mermaid-printer",
-    version: VERSION,
-  });
+  const server = new McpServer(
+    {
+      name: "mermaid-printer",
+      version: VERSION,
+    },
+    { maxToolInputElements: MAX_TOOL_INPUT_ELEMENTS },
+  );
 
   // Register healthcheck tool (no storage needed)
   server.tool(
@@ -163,7 +201,7 @@ export function createServer(storage: StorageBackend): McpServer {
 }
 
 async function main(): Promise<void> {
-  const { dataDir } = parseArgs();
+  const { dataDir, httpPort } = parseArgs();
 
   // Initialize storage backend - storage is always required
   let storageBackend: StorageBackend;
@@ -195,6 +233,28 @@ async function main(): Promise<void> {
       `[mermaid-mcp] Storage initialization failed: ${error instanceof Error ? error.message : String(error)}`,
     );
     process.exit(1);
+  }
+
+  if (httpPort !== undefined) {
+    try {
+      const storage = storageBackend;
+      const running = await startHttpServer({
+        port: httpPort,
+        createMcpServer: () => createServer(storage),
+      });
+      console.error(
+        `[mermaid-mcp] Streamable HTTP listening on 0.0.0.0:${running.port}/mcp`,
+      );
+      process.once("SIGTERM", () => {
+        void running.close().then(() => process.exit(0));
+      });
+    } catch (error) {
+      console.error(
+        `[mermaid-mcp] Could not listen on port ${httpPort}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+    return;
   }
 
   const server = createServer(storageBackend);

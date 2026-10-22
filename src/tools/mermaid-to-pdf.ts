@@ -299,27 +299,32 @@ async function renderWithTimeout(
     const { width, height } = extractSvgDimensions(svgResult.svg);
     const html = createHtmlWithSvg(svgResult.svg);
 
-    const pdfTimeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("PDF_TIMEOUT"));
-      }, pdfTimeoutMs);
-    });
-
     let pdfBuffer: Uint8Array;
+    let pdfTimeoutId: ReturnType<typeof setTimeout> | undefined;
     const page = await browser.newPage();
     try {
-      await page.setContent(html, { waitUntil: "load" });
+      const pdfTimeoutPromise = new Promise<never>((_, reject) => {
+        pdfTimeoutId = setTimeout(() => {
+          reject(new Error("PDF_TIMEOUT"));
+        }, pdfTimeoutMs);
+      });
 
-      pdfBuffer = await Promise.race([
-        page.pdf({
+      // Race setContent and pdf together: awaiting setContent outside the race
+      // let a hung setContent escape the budget, and a timeout firing during
+      // it rejected before any handler was attached, surfacing as an
+      // unhandled rejection that crashes a long-lived server.
+      const pdfPromise = (async () => {
+        await page.setContent(html, { waitUntil: "load" });
+        return page.pdf({
           printBackground: true,
           width: width,
           height: height,
           pageRanges: "1",
           scale: 1,
-        }),
-        pdfTimeoutPromise,
-      ]);
+        });
+      })();
+
+      pdfBuffer = await Promise.race([pdfPromise, pdfTimeoutPromise]);
     } catch (error) {
       if (error instanceof Error && error.message === "PDF_TIMEOUT") {
         return {
@@ -338,6 +343,7 @@ async function renderWithTimeout(
         },
       };
     } finally {
+      clearTimeout(pdfTimeoutId);
       await page.close();
     }
 

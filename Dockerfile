@@ -55,9 +55,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Install supergateway for stdio-to-SSE proxy
-RUN npm install -g supergateway
-
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 
@@ -74,9 +71,12 @@ VOLUME ["/app/data/artifacts"]
 # Switch to non-root user
 USER mcp
 
-# Expose SSE port
+# MCP over Streamable HTTP at /mcp, liveness probe at /health
 EXPOSE 8000
 
-# Default: run via supergateway to expose stdio as SSE
+# Report the container unhealthy when /health stops answering
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/health || exit 1
+
 # The data directory is the mounted volume path
-CMD ["supergateway", "--stdio", "node dist/index.js /app/data/artifacts", "--port", "8000", "--healthEndpoint", "/health"]
+CMD ["node", "dist/index.js", "--http=8000", "/app/data/artifacts"]

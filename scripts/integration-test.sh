@@ -50,13 +50,23 @@ log_fail() {
   TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
+# Pinned so a new Inspector release cannot silently change how the server is launched
+INSPECTOR="@modelcontextprotocol/inspector@2.12.0"
+
+# The Inspector launches the server with a minimal environment. The server reads
+# CI to disable Chromium's sandbox on runners that lack one, so forward it.
+SERVER_ENV=()
+if [[ -n "${CI:-}" ]]; then
+  SERVER_ENV=(-e "CI=$CI")
+fi
+
 # Run MCP Inspector CLI and capture output
 # Usage: run_mcp_cli <method> [additional args...]
 run_mcp_cli() {
   local method="$1"
   shift
   cd "$PROJECT_ROOT"
-  npx --yes @modelcontextprotocol/inspector --cli $SERVER_CMD --method "$method" "$@" 2>/dev/null
+  npx --yes "$INSPECTOR" --cli ${SERVER_ENV[@]+"${SERVER_ENV[@]}"} $SERVER_CMD --method "$method" "$@" 2>/dev/null
 }
 
 # Assert that output contains expected string
