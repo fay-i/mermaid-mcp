@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startHttpServer } from "../../../src/http-server.js";
 import {
   connectClient,
+  INITIALIZE_REQUEST,
   MCP_HEADERS,
   postInitialize,
   postInSession,
@@ -120,5 +121,26 @@ describe("a failing session factory", () => {
 
     errorSpy.mockRestore();
     await failing.close();
+  });
+});
+
+describe("oversized request bodies", () => {
+  it("answers a sessionless body over the cap with 413 and keeps serving", async () => {
+    const server = await startTestServer();
+    const oversized = JSON.stringify({
+      ...INITIALIZE_REQUEST,
+      params: { ...INITIALIZE_REQUEST.params, padding: "x".repeat(2_000_000) },
+    });
+
+    const response = await fetch(server.url, {
+      method: "POST",
+      headers: MCP_HEADERS,
+      body: oversized,
+    });
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get("mcp-session-id")).toBeNull();
+    expect((await postInitialize(server.running.port)).status).toBe(200);
+    await server.stop();
   });
 });

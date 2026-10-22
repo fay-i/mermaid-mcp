@@ -30,12 +30,40 @@ function pathOf(req: http.IncomingMessage): string {
   return new URL(req.url ?? "/", "http://localhost").pathname;
 }
 
-async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(chunk as Buffer);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+// Only sessionless requests (initialize) are read here; the SDK transport
+// reads and limits in-session bodies. A real initialize is well under 1 KiB.
+const MAX_SESSIONLESS_BODY_BYTES = 1024 * 1024;
+
+class BodyTooLargeError extends Error {}
+
+// Buffers at most the cap. Past it, the rest of the body is drained and
+// discarded so the client can still read the 413.
+function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let bytesRead = 0;
+    let tooLarge = false;
+    req.on("data", (chunk: Buffer) => {
+      if (tooLarge) return;
+      bytesRead += chunk.length;
+      if (bytesRead > MAX_SESSIONLESS_BODY_BYTES) {
+        tooLarge = true;
+        chunks.length = 0;
+        reject(new BodyTooLargeError());
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (tooLarge) return;
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
 }
 
 const SESSION_HEADER = "mcp-session-id";
@@ -157,7 +185,16 @@ export function startHttpServer(
       let body: unknown;
       try {
         body = await readJsonBody(req);
-      } catch {
+      } catch (error) {
+        if (error instanceof BodyTooLargeError) {
+          sendJsonRpcError(
+            res,
+            413,
+            -32600,
+            `Request body exceeds ${MAX_SESSIONLESS_BODY_BYTES} bytes`,
+          );
+          return;
+        }
         sendJsonRpcError(res, 400, -32700, "Parse error: invalid JSON");
         return;
       }
