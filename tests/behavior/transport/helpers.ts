@@ -126,3 +126,23 @@ export const ALL_TOOL_NAMES = [
   "mermaid_to_pdf",
   "mermaid_to_svg",
 ];
+
+export function postInSession(
+  port: number,
+  sessionId: string,
+  message: Record<string, unknown> = {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/list",
+  },
+): Promise<Response> {
+  return fetch(`http://127.0.0.1:${port}/mcp`, {
+    method: "POST",
+    headers: {
+      ...MCP_HEADERS,
+      "mcp-session-id": sessionId,
+      "mcp-protocol-version": "2025-06-18",
+    },
+    body: JSON.stringify(message),
+  });
+}

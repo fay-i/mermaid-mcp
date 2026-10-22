@@ -57,6 +57,9 @@ export function startHttpServer(
       onsessioninitialized: (sessionId) => {
         sessions.set(sessionId, transport);
       },
+      onsessionclosed: (sessionId) => {
+        sessions.delete(sessionId);
+      },
     });
     await options.createMcpServer().connect(transport);
     await transport.handleRequest(req, res, body);
