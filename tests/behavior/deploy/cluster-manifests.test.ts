@@ -66,3 +66,27 @@ describe("cluster manifests", () => {
     );
   });
 });
+
+describe("cluster deploy documentation", () => {
+  const readme = readFileSync("README.md", "utf8");
+
+  it("documents creating the required secret before applying the manifests", () => {
+    const createAt = readme.indexOf(
+      "kubectl -n mermaid-mcp create secret generic mermaid-s3-credentials",
+    );
+    const applyAt = readme.indexOf("kubectl apply -k k8s/");
+    expect(createAt).toBeGreaterThan(-1);
+    expect(applyAt).toBeGreaterThan(createAt);
+  });
+
+  it.each([
+    "STORAGE_TYPE",
+    "S3_ENDPOINT",
+    "S3_BUCKET",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+  ])("names the %s key the server reads", (key) => {
+    expect(readme).toContain(`--from-literal=${key}=`);
+  });
+});
