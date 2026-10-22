@@ -309,10 +309,10 @@ async function renderWithTimeout(
         }, pdfTimeoutMs);
       });
 
-      // Race setContent and pdf together, as deck-renderer does: awaiting
-      // setContent outside the race let a hung setContent escape the budget,
-      // and a timeout firing during it surfaced as an unhandled rejection,
-      // which crashes a long-lived server.
+      // Race setContent and pdf together: awaiting setContent outside the race
+      // let a hung setContent escape the budget, and a timeout firing during
+      // it rejected before any handler was attached, surfacing as an
+      // unhandled rejection that crashes a long-lived server.
       const pdfPromise = (async () => {
         await page.setContent(html, { waitUntil: "load" });
         return page.pdf({
@@ -323,9 +323,6 @@ async function renderWithTimeout(
           scale: 1,
         });
       })();
-      // If the timeout wins, the page closes in finally and the pipeline
-      // rejects afterwards; consume that so it cannot escape as unhandled.
-      pdfPromise.catch(() => {});
 
       pdfBuffer = await Promise.race([pdfPromise, pdfTimeoutPromise]);
     } catch (error) {
