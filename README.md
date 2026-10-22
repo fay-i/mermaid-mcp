@@ -61,6 +61,36 @@ Or run the published package without a global install:
 }
 ```
 
+### Connect to the deployed server
+
+The deployed server speaks MCP over Streamable HTTP at one address:
+
+| Transport | Address |
+|-----------|---------|
+| `http` | `http://10.42.1.81:8100/mcp` |
+
+Any number of clients can connect at the same time. Each connection gets its own session, and the artifacts it renders are grouped under that session.
+
+Add it to Claude Code:
+
+```bash
+claude mcp add --scope user --transport http mermaid-mcp http://10.42.1.81:8100/mcp
+```
+
+If this machine added the server before, under the old SSE transport, remove that entry first, then run the add command above:
+
+```bash
+claude mcp remove --scope user mermaid-mcp
+```
+
+Clients still using the old SSE configuration get `410 Gone`, with a message naming the address above.
+
+To run your own HTTP server, pass `--http=<port>`. The server then serves `/mcp` on that port, plus `/health` for probes:
+
+```bash
+mermaid-mcp --http=8000 ./data/artifacts
+```
+
 ### Docker Compose (Recommended)
 
 ```bash
