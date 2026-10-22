@@ -9,6 +9,7 @@ import { mermaidToSvgWithStorage } from "./tools/mermaid-to-svg.js";
 import { mermaidToPdfWithStorage } from "./tools/mermaid-to-pdf.js";
 import { mermaidToDeckWithStorage } from "./tools/mermaid-to-deck.js";
 import { VERSION } from "./version.js";
+import { startHttpServer } from "./http-server.js";
 import { createStorageBackend, type StorageBackend } from "./storage/index.js";
 import { LocalStorageBackend } from "./storage/local-backend.js";
 import { MermaidToSvgInputSchema } from "./schemas/mermaid-to-svg.js";
@@ -192,7 +193,7 @@ export function createServer(storage: StorageBackend): McpServer {
 }
 
 async function main(): Promise<void> {
-  const { dataDir } = parseArgs();
+  const { dataDir, httpPort } = parseArgs();
 
   // Initialize storage backend - storage is always required
   let storageBackend: StorageBackend;
@@ -224,6 +225,21 @@ async function main(): Promise<void> {
       `[mermaid-mcp] Storage initialization failed: ${error instanceof Error ? error.message : String(error)}`,
     );
     process.exit(1);
+  }
+
+  if (httpPort !== undefined) {
+    try {
+      const running = await startHttpServer({ port: httpPort });
+      console.error(
+        `[mermaid-mcp] Streamable HTTP listening on 0.0.0.0:${running.port}/mcp`,
+      );
+    } catch (error) {
+      console.error(
+        `[mermaid-mcp] Could not listen on port ${httpPort}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+    return;
   }
 
   const server = createServer(storageBackend);
