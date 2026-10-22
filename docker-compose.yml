@@ -6,10 +6,8 @@ services:
     image: mermaid-mcp:latest
     container_name: mermaid-mcp
     ports:
-      # SSE endpoint for MCP communication
+      # MCP over Streamable HTTP: connect clients to http://localhost:8000/mcp
       - "8000:8000"
-      # CDN proxy for artifact downloads
-      - "3001:3001"
     volumes:
       # Mount local directory for artifact storage
       # This enables file persistence across container restarts
