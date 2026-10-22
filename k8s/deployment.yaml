@@ -16,15 +16,17 @@ spec:
       labels:
         app.kubernetes.io/name: mermaid-mcp
     spec:
-      imagePullSecrets:
-        - name: dockerhub-credentials
       containers:
         - name: mermaid-mcp
           image: michaelfay/mermaid-mcp:latest
           imagePullPolicy: Always
+          envFrom:
+            # S3 storage settings; the secret is created in the cluster, never committed
+            - secretRef:
+                name: mermaid-s3-credentials
           ports:
             - containerPort: 8000
-              name: sse
+              name: mcp
               protocol: TCP
           resources:
             requests:

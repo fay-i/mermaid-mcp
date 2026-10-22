@@ -11,6 +11,6 @@ spec:
     - port: 8100
       targetPort: 8000
       protocol: TCP
-      name: sse
+      name: mcp
   selector:
     app.kubernetes.io/name: mermaid-mcp
