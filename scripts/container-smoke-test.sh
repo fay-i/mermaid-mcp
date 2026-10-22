@@ -82,6 +82,13 @@ else
   log_fail "Image command is not the server binary with --http=8000: $CMD_JSON"
 fi
 
+HEALTHCHECK_JSON=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE")
+if [[ "$HEALTHCHECK_JSON" == *"/health"* ]]; then
+  log_pass "Image declares a health check on /health"
+else
+  log_fail "Image declares no /health health check: $HEALTHCHECK_JSON"
+fi
+
 if docker run --rm --entrypoint sh "$IMAGE" -c 'command -v supergateway' >/dev/null 2>&1; then
   log_fail "supergateway is still installed in the image"
 else

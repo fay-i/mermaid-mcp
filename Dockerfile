@@ -74,5 +74,9 @@ USER mcp
 # MCP over Streamable HTTP at /mcp, liveness probe at /health
 EXPOSE 8000
 
+# Report the container unhealthy when /health stops answering
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/health || exit 1
+
 # The data directory is the mounted volume path
 CMD ["node", "dist/index.js", "--http=8000", "/app/data/artifacts"]
