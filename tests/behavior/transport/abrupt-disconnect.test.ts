@@ -3,6 +3,8 @@
  * the server or the next client.
  */
 
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   callTool,
@@ -12,6 +14,21 @@ import {
   startTestServer,
   type TestServer,
 } from "./helpers.js";
+
+/** Waits for the abandoned render to finish writing into its own session. */
+async function settledArtifacts(
+  dataDir: string,
+  sessionId: string,
+): Promise<string[]> {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const files = await readdir(join(dataDir, sessionId)).catch(() => []);
+    const finished = files.filter((file) => file.endsWith(".pdf"));
+    if (finished.length > 0) return finished;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return [];
+}
 
 describe("abrupt client disconnects", () => {
   let server: TestServer;
@@ -77,5 +94,8 @@ describe("abrupt client disconnects", () => {
     await render;
 
     await expectNextClientWorks();
+    await expect(settledArtifacts(server.dataDir, sessionId)).resolves.toEqual([
+      expect.stringMatching(/\.pdf$/),
+    ]);
   }, 60_000);
 });

@@ -20,9 +20,10 @@ async function sessionsUsedBy(
   server: TestServer,
   session: TestClient,
 ): Promise<Set<string>> {
-  const results = await Promise.all(
-    RENDERS.map(({ name, args }) => callTool(session.client, name, args)),
-  );
+  const results: Record<string, unknown>[] = [];
+  for (const { name, args } of RENDERS) {
+    results.push(await callTool(session.client, name, args));
+  }
   return new Set(
     results.map((result) => sessionOfArtifact(server.dataDir, result)),
   );

@@ -12,10 +12,13 @@ import {
   type TestServer,
 } from "./helpers.js";
 
-function runAllTools(session: TestClient) {
-  return Promise.all(
-    TOOL_CALLS.map(({ name, args }) => callTool(session.client, name, args)),
-  );
+/** One client's calls run in turn; the two clients overlap each other. */
+async function runAllTools(session: TestClient) {
+  const results: Record<string, unknown>[] = [];
+  for (const { name, args } of TOOL_CALLS) {
+    results.push(await callTool(session.client, name, args));
+  }
+  return results;
 }
 
 describe("concurrent clients", () => {
