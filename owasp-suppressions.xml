@@ -86,4 +86,51 @@
     <cve>CVE-2026-23864</cve>
   </suppress>
 
+  <!--
+    basic-ftp GHSA-c475-qrg2-pj4r (CVSS 10.0) and extract-zip
+    GHSA-7pqw-9j4j-h8q3 / CVE-2026-56876 / GHSA-jmr9-qjv8-65gv (CVSS 8.1-8.6)
+
+    Both are reached only through Puppeteer's browser-download package:
+    puppeteer@23 -> @puppeteer/browsers -> extract-zip, and
+    @puppeteer/browsers -> proxy-agent -> pac-proxy-agent -> get-uri -> basic-ftp.
+    The fixes ship only in puppeteer@25, two major versions away.
+
+    Why NOT reachable in mermaid-mcp:
+
+    1. INSTALL-TIME ONLY: extract-zip unpacks the Chrome archive, and
+       basic-ftp backs proxy-agent's ftp:// support, during the browser
+       download. The server loads @puppeteer/browsers at launch only to
+       resolve the installed browser's path; it never downloads anything at
+       runtime. The Docker image skips the download entirely
+       (PUPPETEER_SKIP_CHROMIUM_DOWNLOAD) and uses system Chromium.
+
+    2. NO ATTACKER-CONTROLLED INPUT: the download URL and archive come from
+       Puppeteer's pinned Chrome-for-Testing release, never from tool input.
+       No tool accepts URLs, proxies, archives, or FTP endpoints.
+
+    Tracking the puppeteer@25 upgrade in a follow-up issue.
+
+    Approved: 2026-10-22
+  -->
+  <suppress>
+    <notes><![CDATA[
+      basic-ftp ReDoS in Client.list(): reached only via @puppeteer/browsers'
+      proxy-agent during browser download. No runtime FTP use; fixed in puppeteer@25.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/basic-ftp@.*$</packageUrl>
+    <vulnerabilityName>GHSA-c475-qrg2-pj4r</vulnerabilityName>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+      extract-zip archive extraction issues: used only by @puppeteer/browsers
+      to unpack the pinned Chrome download at install time. Never handles
+      tool input; fixed in puppeteer@25.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/extract-zip@.*$</packageUrl>
+    <vulnerabilityName>GHSA-7pqw-9j4j-h8q3</vulnerabilityName>
+    <vulnerabilityName>GHSA-jmr9-qjv8-65gv</vulnerabilityName>
+    <cve>CVE-2026-56876</cve>
+  </suppress>
+
 </suppressions>
