@@ -7,7 +7,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   callTool,
   connectClient,
-  MCP_HEADERS,
+  openRawSession,
+  sessionHeaders,
   postInSession,
   startTestServer,
   type TestServer,
@@ -102,16 +103,11 @@ describe("idle clock and in-flight work", () => {
 
   it("releases an idle session even while it holds an open stream", async () => {
     server = await startTestServer({ idleTimeoutMs: IDLE_MS });
-    const { client, sessionId } = await connectClient(server.url);
+    const sessionId = await openRawSession(server.running.port);
     const controller = new AbortController();
     const stream = await fetch(server.url, {
       method: "GET",
-      headers: {
-        ...MCP_HEADERS,
-        Accept: "text/event-stream",
-        "mcp-session-id": sessionId,
-        "mcp-protocol-version": "2025-06-18",
-      },
+      headers: { ...sessionHeaders(sessionId), Accept: "text/event-stream" },
       signal: controller.signal,
     });
     expect(stream.status).toBe(200);
@@ -122,6 +118,5 @@ describe("idle clock and in-flight work", () => {
       404,
     );
     controller.abort();
-    await client.close();
   });
 });

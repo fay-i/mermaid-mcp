@@ -200,6 +200,11 @@ export function startHttpServer(
         res.writeHead(405, { Allow: MCP_METHODS.join(", ") }).end();
         return;
       }
+      // No browser client is supported, so any Origin means a web page is driving this request.
+      if (req.headers.origin !== undefined) {
+        sendJsonRpcError(res, 403, -32000, "Forbidden: Origin not allowed");
+        return;
+      }
       await handleMcp(req, res);
       return;
     }
