@@ -4,7 +4,7 @@
 
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -181,5 +181,5 @@ export function sessionOfArtifact(
   result: Record<string, unknown>,
 ): string {
   const path = fileURLToPath(String(result.download_url));
-  return path.slice(dataDir.length + 1).split("/")[0];
+  return relative(dataDir, path).split(sep)[0];
 }

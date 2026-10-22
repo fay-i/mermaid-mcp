@@ -4,7 +4,7 @@
 
 import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -81,8 +81,7 @@ describe("stdio mode (no --http flag)", () => {
     expect(firstPath.startsWith(dataDir)).toBe(true);
     expect(await readFile(firstPath, "utf8")).toContain("<svg");
 
-    const sessionOf = (path: string) =>
-      path.slice(dataDir.length + 1).split("/")[0];
+    const sessionOf = (path: string) => relative(dataDir, path).split(sep)[0];
     expect(sessionOf(firstPath)).not.toBe(sessionOf(secondPath));
   }, 60_000);
 });

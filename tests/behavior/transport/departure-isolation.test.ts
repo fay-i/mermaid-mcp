@@ -24,14 +24,14 @@ const DEPARTURES = {
   abrupt: async (port: number) => {
     const sessionId = await openRawSession(port);
     const controller = new AbortController();
-    const stream = fetch(`http://127.0.0.1:${port}/mcp`, {
+    const stream = await fetch(`http://127.0.0.1:${port}/mcp`, {
       method: "GET",
       headers: { ...sessionHeaders(sessionId), Accept: "text/event-stream" },
       signal: controller.signal,
-    }).catch(() => undefined);
+    });
+    expect(stream.status).toBe(200);
     return async () => {
       controller.abort();
-      await stream;
     };
   },
 };
@@ -53,11 +53,17 @@ describe("one client leaving", () => {
       const leave = await depart(server.running.port);
       const b = await connectClient(server.url);
 
+      let settled = false;
       const render = callTool(b.client, "mermaid_to_pdf", {
         code: "graph TD; Stay-->Here",
+      }).finally(() => {
+        settled = true;
       });
       await new Promise((resolve) => setTimeout(resolve, 100));
       await leave();
+      expect(settled, "B's render must still be in flight when A leaves").toBe(
+        false,
+      );
 
       expect((await render).ok).toBe(true);
       expect(b.transport.sessionId).toBe(b.sessionId);

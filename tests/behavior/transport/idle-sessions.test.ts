@@ -98,11 +98,16 @@ describe("idle clock and in-flight work", () => {
     server = await startTestServer({ idleTimeoutMs: IDLE_MS });
     const { client } = await connectClient(server.url);
 
+    const startedAt = Date.now();
     const result = await callTool(client, "mermaid_to_deck", {
       diagrams: [{ code: "graph TD; A-->B" }, { code: "graph LR; C-->D" }],
     });
 
     expect(result.ok).toBe(true);
+    expect(
+      Date.now() - startedAt,
+      "the render must outlast the idle period to test anything",
+    ).toBeGreaterThan(IDLE_MS);
     await expect(client.listTools()).resolves.toBeDefined();
     await client.close();
   }, 60_000);

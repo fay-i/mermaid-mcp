@@ -52,12 +52,18 @@ describe("health probes under load", () => {
     );
     await expectHealthy(10);
 
+    let settled = 0;
     const renders = clients.map((session, i) =>
       callTool(session.client, "mermaid_to_pdf", {
         code: `graph TD; Busy${i}-->Probe`,
+      }).finally(() => {
+        settled++;
       }),
     );
     await expectHealthy(20);
+    expect(settled, "renders must still be in flight during the probes").toBe(
+      0,
+    );
     for (const result of await Promise.all(renders)) {
       expect(result.ok).toBe(true);
     }

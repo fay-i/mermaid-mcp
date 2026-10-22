@@ -91,7 +91,14 @@ describe("abrupt client disconnects", () => {
     }).catch((error: unknown) => error);
     await new Promise((resolve) => setTimeout(resolve, 200));
     controller.abort();
-    await render;
+    // The POST answers at once with an event stream and sends the tool result
+    // on it later. A body that fails with AbortError proves the result had not
+    // arrived when the client vanished.
+    const response = await render;
+    expect(response).toBeInstanceOf(Response);
+    await expect((response as Response).text()).rejects.toMatchObject({
+      name: "AbortError",
+    });
 
     await expectNextClientWorks();
     await expect(settledArtifacts(server.dataDir, sessionId)).resolves.toEqual([
