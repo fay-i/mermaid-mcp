@@ -99,4 +99,4 @@ per PR — and prefer separate PRs for foundational setup, each user story, and 
 
 By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). The full
 governance rules live in [`AGENTS.md`](../AGENTS.md) and
-[`.specify/memory/constitution.md`](../.specify/memory/constitution.md).
+[`.behavior-kit/memory/constitution.md`](../.behavior-kit/memory/constitution.md).

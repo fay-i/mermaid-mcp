@@ -1,6 +1,6 @@
 # Mermaid Printer MCP Server — AI Agent Guidelines
 
-This document enforces the project constitution for AI agents. Read `.specify/memory/constitution.md` for the full governance rules.
+This document enforces the project constitution for AI agents. Read `.behavior-kit/memory/constitution.md` for the full governance rules.
 
 ## Project Overview
 
@@ -241,13 +241,13 @@ tests/
 
 ## Constitution Reference
 
-Full governance rules: `.specify/memory/constitution.md` (v1.2.0)
+Full governance rules: `.behavior-kit/memory/constitution.md` (ratified 2026-10-22)
 
 NON-NEGOTIABLE principles:
-- I. Epistemic Humility
-- II. TDD by Behavior
-- III. CI-First Local Verification
-- IV. No Skips/Ignores/Bypasses
-- VII. PR Structure and Review Governance
-- VIII. Iteration Loop Discipline
-- X. Local Gates Before Commit/Push
+- I. Test-Driven Development
+- II. Epistemic Humility
+- VI. No Skips, No Ignores, No Bypasses
+- XI. Clean-Slate Gates
+- XII. Atomic PRs with Story Checkpoints
+
+Worktrees are enabled: parallel agents work in `.worktrees/<short-name>` (gitignored).

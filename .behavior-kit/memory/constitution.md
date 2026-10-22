@@ -27,3 +27,18 @@ Code should be readable without comments. Use clear names, small functions, and 
 ---
 
 _Add project-specific articles below (Article IX+):_
+
+## Article IX — MCP Tool Contract
+Every MCP tool declares explicit input and output JSON schemas and returns stable, documented error codes. Output is deterministic: the same input yields the same output. Behavior tests cover valid input, invalid input, renderer failure, timeout, and resource cleanup.
+
+## Article X — Strict Type Policy
+Implementation code never uses `any`, `Partial<T>` as a workaround, or unsafe casts like `as unknown as T`; external data enters as `unknown` and is narrowed. Test code may use `any` or `Partial<T>` for fixtures but must never weaken behavior assertions.
+
+## Article XI — Clean-Slate Gates (NON-NEGOTIABLE)
+Before every push: `npm run clean`, a fresh `npm install`, then `npm run quality` (typecheck, lint, format, build, unit, and MCP Inspector integration tests). CI runs the same gates in under 10 minutes with no allow-failure jobs. "It's just a typo" is not an exception.
+
+## Article XII — Atomic PRs with Story Checkpoints (NON-NEGOTIABLE)
+Each user story is its own PR, with task IDs, issue links (`Closes #N`), and TDD evidence in the description. After pushing, stop: address all review feedback, re-run the gates, and merge before starting the next story.
+
+Worktrees: enabled
+Ratified: 2026-10-22
